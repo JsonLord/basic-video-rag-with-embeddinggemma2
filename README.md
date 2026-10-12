@@ -1,5 +1,7 @@
 # Video RAG with EmbeddingGemma 2 + Gemma 4 12B
 
+▶️ **Video walkthrough:** https://youtu.be/Q8T9lvtGFNw
+
 Multimodal RAG over the latest uploads on the channel. Every ~30s segment is embedded by
 [EmbeddingGemma 2](https://huggingface.co/google/embeddinggemma-2) five different ways into one
 shared 768d space, and Gemma 4 12B (QAT, on vLLM) answers questions by *watching* the retrieved
