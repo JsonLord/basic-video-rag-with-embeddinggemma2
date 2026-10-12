@@ -1,0 +1,15 @@
+[project]
+name = "vrag-serve"
+version = "0.1.0"
+description = "vLLM server env for the Gemma 4 12B generator (kept separate from the embedding env to avoid torch/transformers pin conflicts)"
+requires-python = ">=3.10"
+dependencies = [
+    # Pinned to the combo verified on this box (RTX PRO 6000 Blackwell) in ~/projects/gemma-4-qat.
+    # transformers 5.x is required for the gemma4_unified architecture.
+    "vllm[audio]==0.23.0",  # [audio] pulls librosa/soundfile; without them audio inputs 400
+    "transformers==5.12.0",
+    "huggingface-hub>=0.27.0",
+]
+
+[tool.uv]
+package = false

@@ -1,0 +1,20 @@
+.venv/
+serve/.venv/
+serve/logs/
+__pycache__/
+data/
+sams-videos/
+.research/
+web/node_modules/
+web/.next/
+*.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# secrets / local config
+.env
+.env.*
+*.pem

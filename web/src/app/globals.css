@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/* Dark-only UI. Chart chrome + ink follow the dataviz reference palette (dark column). */
+:root {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-2: #232322;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+  --grid: #2c2c2a;
+  --baseline: #383835;
+  --border: rgba(255, 255, 255, 0.1);
+  --accent: #3987e5;
+
+  /* Categorical slots, fixed order, validated for the dark surface (scripts/validate_palette.js). */
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--text-primary);
+  --color-ink-2: var(--text-secondary);
+  --color-muted: var(--text-muted);
+  --color-grid: var(--grid);
+  --color-line: var(--border);
+  --color-accent: var(--accent);
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--page);
+  color: var(--text-primary);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Answer markdown */
+.prose-answer p { margin: 0.5rem 0; line-height: 1.6; }
+.prose-answer ul { list-style: disc; padding-left: 1.25rem; margin: 0.5rem 0; }
+.prose-answer ol { list-style: decimal; padding-left: 1.25rem; margin: 0.5rem 0; }
+.prose-answer li { margin: 0.25rem 0; }
+.prose-answer strong { color: var(--text-primary); }
+.prose-answer code { font-family: var(--font-mono); font-size: 0.85em; background: var(--surface-2); padding: 0.1rem 0.3rem; border-radius: 4px; }
