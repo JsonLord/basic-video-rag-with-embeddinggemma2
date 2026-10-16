@@ -41,6 +41,7 @@ class Output(Strict):
     detections: list[Detection] = Field(default_factory=list, max_length=200)
     decisions: list[Decision] = Field(default_factory=list, max_length=20)
     text: str = Field(default='', max_length=32000)
+    warnings: list[str] = Field(default_factory=list, max_length=20)
     embedding: list[float] | None = Field(default=None, max_length=16384)
 
 async def destination(p: Provider, sensitive: bool) -> str:
@@ -52,9 +53,11 @@ async def destination(p: Provider, sensitive: bool) -> str:
     if u.scheme != 'https' or not u.hostname or u.hostname.lower() not in allowed or u.username or u.password or u.query or u.fragment or u.port not in (None, 443):
         raise ProviderFailure('destination_denied')
     try:
-        addresses = await asyncio.get_running_loop().run_in_executor(None, lambda: socket.getaddrinfo(u.hostname, 443, type=socket.SOCK_STREAM))
+        addresses = await asyncio.wait_for(asyncio.get_running_loop().run_in_executor(None, lambda: socket.getaddrinfo(u.hostname, 443, type=socket.SOCK_STREAM)), timeout=min(5, p.timeout_ms / 1000))
         if not addresses or any(not ipaddress.ip_address(a[4][0]).is_global for a in addresses):
             raise ProviderFailure('destination_denied')
+    except TimeoutError:
+        raise ProviderFailure("timeout") from None
     except (OSError, ValueError):
         raise ProviderFailure('destination_denied') from None
     return raw.rstrip('/')

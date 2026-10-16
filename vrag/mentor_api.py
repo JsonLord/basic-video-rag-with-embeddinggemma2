@@ -291,7 +291,7 @@ async def analyze_frame(sid: str, body: FrameInput, request: Request, owner=Depe
               'request_id':body.request_id, 'config_version':version, 'observed_at':received,
               'source_width':width, 'source_height':height, 'detections':[d.model_dump() for d in out.detections],
               'decisions':[d.model_dump() for d in out.decisions], 'provider_results':statuses,
-              'warnings':['No successful provider result'] if not any(r['status']=='ok' for r in statuses) else []}
+              'warnings':out.warnings + (['No successful provider result'] if not any(r['status']=='ok' for r in statuses) else [])}
     s.events.append(result)
     return result
 

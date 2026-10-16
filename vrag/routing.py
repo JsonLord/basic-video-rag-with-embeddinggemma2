@@ -21,6 +21,7 @@ async def route(config: Configuration, feature: str, payload: dict, sensitive=Tr
         names = list(dict.fromkeys(names))
     results = []
     outputs = []
+    warnings = []
     if rule.strategy == 'parallel':
         tasks = [asyncio.create_task(run(n, payload)) for n in names]
         try:
@@ -42,6 +43,7 @@ async def route(config: Configuration, feature: str, payload: dict, sensitive=Tr
         results.extend({'provider': n, 'status': 'cancelled', 'latency_ms': 0} for n in names if n not in called)
         if rule.result_policy == 'quorum' and len(outputs) < rule.quorum:
             outputs = []
+            warnings.append('quorum_not_met')
     else:
         inp = dict(payload)
         for n in names:
@@ -57,6 +59,7 @@ async def route(config: Configuration, feature: str, payload: dict, sensitive=Tr
                 break
     # Boxes can ONLY originate from a validated detector adapter. No text-to-box conversion.
     merged = Output(
+        warnings=warnings,
         detections=[d for o in outputs for d in o.detections][:200],
         decisions=[d for o in outputs for d in o.decisions][:20],
         text='\n'.join(o.text for o in outputs if o.text)[:32000],

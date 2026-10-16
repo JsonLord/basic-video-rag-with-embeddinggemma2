@@ -66,4 +66,4 @@ async def test_quorum_failure_is_explicit(monkeypatch):
         return Output(text='one result')
     monkeypatch.setattr('vrag.routing.adapter.call',call)
     out,status=await route(cfg('parallel',result_policy='quorum',quorum=2),'live.camera1.scene',{})
-    assert not out.text and len(status)==2
+    assert not out.text and len(status)==2 and out.warnings==['quorum_not_met']
