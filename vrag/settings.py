@@ -4,7 +4,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
-from config.schema import Configuration, parse_yaml
+from config.schema import Configuration
 
 class ConfigStore:
     def __init__(self, path=None):
@@ -36,7 +36,20 @@ class ConfigStore:
                     json.dump([c.model_dump() for c in history], f)
                     f.flush()
                     os.fsync(f.fileno())
+                # Persist the previous complete history before switching the active file.
+                if (self.path / 'config-history.json').exists():
+                    import shutil
+                    backup = self.path / '.config-history.backup.tmp'
+                    shutil.copyfile(self.path / 'config-history.json', backup)
+                    with backup.open('rb') as previous:
+                        os.fsync(previous.fileno())
+                    os.replace(backup, self.path / 'config-history.backup.json')
                 os.replace(tmp, self.path / 'config-history.json')
+                directory_fd = os.open(self.path, os.O_RDONLY)
+                try:
+                    os.fsync(directory_fd)
+                finally:
+                    os.close(directory_fd)
             finally:
                 if os.path.exists(tmp):
                     os.unlink(tmp)

@@ -30,3 +30,13 @@ async def test_read_only_defaults(monkeypatch):
     monkeypatch.delenv('VM_STATE_DIR', raising=False)
     with pytest.raises(ValueError, match='read-only'):
         await ConfigStore().apply(Configuration(), 1)
+
+@pytest.mark.asyncio
+async def test_backup_is_previous_committed_history(tmp_path):
+    import json
+    s=ConfigStore(tmp_path)
+    await s.apply(Configuration(profile='first'),1)
+    await s.apply(Configuration(profile='second'),2)
+    previous=json.loads((tmp_path/'config-history.backup.json').read_text())
+    assert previous[-1]['profile']=='first'
+    assert ConfigStore(tmp_path).snapshot()[1].profile=='second'

@@ -71,3 +71,25 @@ def test_advisory_task_state_is_owned_and_bounded(client):
     assert r.status_code==200 and r.json()['autonomous'] is False
     assert sessions[sid].task['goal']=='Assemble fixture'
     assert client.put(f'/api/live/sessions/{sid}/task',json={'goal':'x'*1001,'step':'x'}).status_code==422
+
+def test_expired_session_data_is_reaped(client):
+    import time
+    sid=client.post('/api/live/sessions',json={'consent':True}).json()['session_id']
+    sessions[sid].last_transcript='ephemeral speech'
+    sessions[sid].expiry=time.monotonic()-1
+    assert client.get(f'/api/live/sessions/{sid}/events').status_code==404
+    assert sid not in sessions
+
+def test_explicit_origins_cannot_be_bypassed_with_forwarded_host(client,monkeypatch):
+    monkeypatch.setenv('VM_ALLOWED_ORIGINS','https://private-app.hf.space')
+    assert client.post('/api/live/sessions',json={'consent':True},headers={'Origin':'https://other.example','X-Forwarded-Host':'other.example'}).status_code==403
+    assert client.post('/api/live/sessions',json={'consent':True},headers={'Origin':'https://private-app.hf.space'}).status_code==200
+
+def test_camera_backpressure_and_frame_snapshot(client):
+    sid=client.post('/api/live/sessions',json={'consent':True}).json()['session_id']
+    sessions[sid].busy.add('camera1')
+    assert client.post(f'/api/live/sessions/{sid}/frames',json=frame()).status_code==429
+    sessions[sid].busy.clear()
+    r=client.post(f'/api/live/sessions/{sid}/frames',json=frame())
+    assert r.status_code==200 and r.json()['config_version']==1
+    assert client.post(f'/api/live/sessions/{sid}/frames',json={**frame(),'frame_id':2}).status_code==429

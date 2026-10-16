@@ -11,3 +11,13 @@ export function download(name: string, contents: string) {
   const href = URL.createObjectURL(new Blob([contents], {type:"application/yaml"}));
   const a = document.createElement("a"); a.href = href; a.download = name; a.click(); URL.revokeObjectURL(href);
 }
+
+export function matchesObservation(o: Observation, expected: {session:string;camera:string;frame:number;request:string;version:number;width:number;height:number}) {
+  return o.session_id===expected.session && o.camera_id===expected.camera && o.frame_id===expected.frame &&
+    o.request_id===expected.request && o.config_version===expected.version && o.source_width===expected.width && o.source_height===expected.height &&
+    Array.isArray(o.detections) && o.detections.every(d=>{
+      const box=d.bbox_xyxy;
+      return Array.isArray(box) && box.length===4 && box.every(n=>Number.isFinite(n)&&n>=0&&n<=1) &&
+        box[0]<box[2] && box[1]<box[3] && Number.isFinite(d.confidence) && d.confidence>=0 && d.confidence<=1;
+    });
+}

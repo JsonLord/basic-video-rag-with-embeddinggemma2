@@ -27,7 +27,7 @@ router = APIRouter()
 def auth(request: Request, admin=False):
     expected = os.environ.get('VM_ADMIN_TOKEN' if admin else 'VM_USER_TOKEN', '')
     value = request.headers.get('authorization', '')
-    if not expected or len(expected) < 24 or not hmac.compare_digest(value, 'Bearer ' + expected):
+    if not expected or len(expected) < 24 or not hmac.compare_digest(value.encode('utf-8'), ('Bearer ' + expected).encode('utf-8')):
         raise HTTPException(401, 'configure a server token (at least 24 characters) and authenticate')
     # Bearer authorization avoids ambient-cookie CSRF. Also reject cross-origin browser requests.
     origin = request.headers.get('origin')
@@ -35,7 +35,7 @@ def auth(request: Request, admin=False):
         allowed = set(filter(None, os.environ.get('VM_ALLOWED_ORIGINS', '').split(',')))
         forwarded = request.headers.get('x-forwarded-host') if request.client and request.client.host in ('127.0.0.1', '::1', 'testclient') else None
         host = forwarded or request.headers.get('host', '')
-        if origin not in allowed and origin not in ('https://' + host, 'http://' + host):
+        if (allowed and origin not in allowed) or (not allowed and origin not in ('https://' + host, 'http://' + host)):
             raise HTTPException(403, 'origin denied')
     return hashlib.sha256(value.encode()).hexdigest()
 
@@ -106,25 +106,44 @@ class Session:
 
 sessions = {}
 
+def reap_sessions():
+    now = time.monotonic()
+    for sid in list(sessions):
+        if sessions[sid].expiry <= now:
+            del sessions[sid]
+
+async def session_cleanup():
+    while True:
+        reap_sessions()
+        await asyncio.sleep(30)
+
 def session_for(sid, owner):
+    reap_sessions()
     s = sessions.get(sid)
-    if not s or s.owner != owner or s.expiry < time.monotonic():
+    if not s or s.owner != owner:
         raise HTTPException(404, 'session expired or unavailable')
     return s
 
 @router.get('/api/health')
 def health():
     return {'status': 'ok', 'api_version': 1, 'inference': 'remote-only', 'config_version': store.version,
-            'configuration': 'persistent-path-configured' if store.path else 'read-only-defaults',
+            'configuration': 'state-directory-configured' if store.path else 'read-only-defaults',
             'providers_configured': len(store.history[-1].providers), 'sessions': 'ephemeral'}
+
+def provider_host(p):
+    from urllib.parse import urlsplit
+    try:
+        return urlsplit(os.environ.get(p.base_url_env, '')).hostname
+    except ValueError:
+        return None
 
 @router.get('/api/providers')
 def providers(owner=Depends(user)):
     version, cfg = store.snapshot()
     return {'config_version': version, 'providers': {k: {'label': p.label, 'adapter': p.adapter, 'model': p.model,
             'capabilities': p.capabilities, 'trust': p.trust, 'credential_present': bool(os.environ.get(p.api_key_secret, '')) if p.api_key_secret else True,
-            'destination': __import__('urllib.parse', fromlist=['urlsplit']).urlsplit(os.environ.get(p.base_url_env, '')).hostname,
-            'protocol_verified': p.adapter != 'laya-vision'} for k,p in cfg.providers.items()},
+            'destination': provider_host(p),
+            'protocol_verified': True, 'live_status': 'not_checked'} for k,p in cfg.providers.items()},
             'features': {k: v.model_dump() for k,v in cfg.features.items()}}
 
 @router.get('/api/config')
@@ -148,9 +167,10 @@ async def validate(text):
     except Exception:
         # Never echo YAML or validation input (it may contain pasted secrets).
         raise HTTPException(422, 'Invalid YAML/schema: use unique keys, no aliases, known providers and compatible capabilities; check template') from None
-    for p in cfg.providers.values():
+    active = {pid for rule in cfg.features.values() if rule.enabled for pid in rule.providers}
+    for pid in active:
         try:
-            await destination(p, False)
+            await destination(cfg.providers[pid], False)
         except ProviderFailure:
             raise HTTPException(422, 'Provider endpoint missing or denied: configure HTTPS public host in VM_ALLOWED_HOSTS and endpoint environment variable') from None
     return cfg
@@ -203,6 +223,8 @@ async def test_provider(pid: str, owner=Depends(admin)):
     image = Image.new('RGB', (32,32), 'white')
     out = io.BytesIO(); image.save(out, format='JPEG')
     payload = {'text': 'Synthetic connection test. Respond with OK.', 'image': 'data:image/jpeg;base64,' + base64.b64encode(out.getvalue()).decode(), 'camera_id': 'test', 'frame_id': 0, 'width':32, 'height':32}
+    if p.adapter == 'openai-chat-vision' and 'image_understanding' not in p.capabilities:
+        payload.pop('image')
     start = time.monotonic()
     await adapter.call(pid, p, payload, False)
     return {'provider': pid, 'status':'ok', 'latency_ms': round((time.monotonic()-start)*1000), 'synthetic': True}
@@ -211,9 +233,11 @@ async def test_provider(pid: str, owner=Depends(admin)):
 async def dry_run(body: DryRunInput, owner=Depends(admin)):
     _, cfg = store.snapshot()
     f = io.BytesIO(); Image.new('RGB', (32,32), 'white').save(f, format='JPEG')
-    out, statuses = await route(cfg, body.feature, {'text':'Synthetic routing test; no real camera data.',
-        'image':'data:image/jpeg;base64,' + base64.b64encode(f.getvalue()).decode(),
-        'camera_id':body.camera_id, 'frame_id':0, 'width':32, 'height':32}, False)
+    payload = {'text':'Synthetic routing test; no real camera data.',
+        'camera_id':body.camera_id, 'frame_id':0, 'width':32, 'height':32}
+    if body.feature.startswith('live.'):
+        payload['image']='data:image/jpeg;base64,' + base64.b64encode(f.getvalue()).decode()
+    out, statuses = await route(cfg, body.feature, payload, False)
     return {'synthetic':True, 'provider_results':statuses, 'detections':[d.model_dump() for d in out.detections], 'decisions':[d.model_dump() for d in out.decisions]}
 
 async def disconnectable(request, operation):
@@ -233,12 +257,10 @@ async def disconnectable(request, operation):
         await asyncio.gather(task, return_exceptions=True)
 
 @router.post('/api/live/sessions')
-def create_session(body: SessionInput, owner=Depends(user)):
+async def create_session(body: SessionInput, owner=Depends(user)):
     if not body.consent:
         raise HTTPException(400, 'explicit transfer consent required')
-    for sid in list(sessions):
-        if sessions[sid].expiry < time.monotonic():
-            del sessions[sid]
+    reap_sessions()
     if len(sessions) >= 32 or sum(s.owner == owner for s in sessions.values()) >= 4:
         raise HTTPException(429, 'session limit')
     sid = secrets.token_urlsafe(24)
@@ -246,7 +268,7 @@ def create_session(body: SessionInput, owner=Depends(user)):
     return {'session_id': sid, 'config_version': store.version, 'expires_in': 1800, 'retention': 'in-memory observations only'}
 
 @router.delete('/api/live/sessions/{sid}')
-def delete_session(sid: str, owner=Depends(user)):
+async def delete_session(sid: str, owner=Depends(user)):
     session_for(sid, owner)
     del sessions[sid]
     return {'deleted': True}
@@ -296,7 +318,7 @@ async def analyze_frame(sid: str, body: FrameInput, request: Request, owner=Depe
     return result
 
 @router.get('/api/live/sessions/{sid}/events')
-def events(sid: str, owner=Depends(user)):
+async def events(sid: str, owner=Depends(user)):
     return list(session_for(sid, owner).events)
 
 @router.post('/api/live/sessions/{sid}/transcribe')
@@ -343,7 +365,7 @@ class TaskInput(Strict):
     completed: bool = False
 
 @router.put('/api/live/sessions/{sid}/task')
-def task_state(sid: str, body: TaskInput, owner=Depends(user)):
+async def task_state(sid: str, body: TaskInput, owner=Depends(user)):
     s = session_for(sid, owner)
     s.task = body.model_dump()
     return {'task':s.task, 'autonomous':False}

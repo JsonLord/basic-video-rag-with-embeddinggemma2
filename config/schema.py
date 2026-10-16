@@ -26,17 +26,28 @@ class Provider(Strict):
             'openai-embeddings': {'text_embeddings'},
             'openai-transcription': {'transcription'},
             'detection-http': {'object_detection', 'bounding_boxes', 'object_tracking'},
-            # Laya's wire protocol is not published in this repository. Fail closed.
-            'laya-vision': set(),
+            # Needle Router imageBase64 + typed noul answers; not generative chat.
+            'laya-vision': {'image_understanding', 'visual_decision'},
         }
         if not set(self.capabilities) <= supported[self.adapter]:
             raise ValueError('capability is not supported by this adapter; use a verified provider protocol')
+        if self.adapter == 'laya-vision' and self.capabilities and set(self.capabilities) != {'image_understanding','visual_decision'}:
+            raise ValueError('Laya image scoring requires image_understanding and visual_decision')
+        if self.adapter == 'detection-http' and set(self.capabilities) & {'object_detection','object_tracking'} and 'bounding_boxes' not in self.capabilities:
+            raise ValueError('detector/tracker contract requires bounding_boxes')
         return self
 
 class Condition(Strict):
     field: Literal['camera_id', 'has_detections']
     equals: str | bool
     provider: str
+    @model_validator(mode='after')
+    def predicate_type(self):
+        if self.field == 'camera_id' and (not isinstance(self.equals, str) or self.equals not in ('camera1','camera2')):
+            raise ValueError('camera condition requires a logical camera slot')
+        if self.field == 'has_detections' and not isinstance(self.equals, bool):
+            raise ValueError('has_detections requires a boolean')
+        return self
 
 class Route(Strict):
     strategy: Literal['single', 'fallback', 'parallel', 'sequential', 'conditional'] = 'single'
@@ -51,6 +62,8 @@ class Route(Strict):
     def valid(self):
         if len(set(self.providers)) != len(self.providers):
             raise ValueError('duplicate providers')
+        if self.strategy != 'parallel' and self.result_policy != 'all':
+            raise ValueError('result_policy is only supported for parallel routing')
         if self.strategy == 'single' and len(self.providers) != 1:
             raise ValueError('single requires exactly one provider')
         if self.quorum > len(self.providers):
@@ -90,13 +103,17 @@ class Configuration(Strict):
             if route.enabled:
                 cap = required.get(feature)
                 caps = {c for p in route.providers for c in self.providers[p].capabilities}
-                if cap and cap not in caps:
+                if cap and any(cap not in self.providers[p].capabilities for p in route.providers):
                     raise ValueError(f'{feature}: missing {cap} capability')
+                if feature == 'rag.text_embeddings' and route.strategy != 'single':
+                    raise ValueError('embedding indexes require one explicit provider identity')
                 if feature.endswith('.tracking') and 'object_tracking' not in caps:
                     raise ValueError('tracking requires a real tracker')
                 if feature.endswith('.detection') and 'bounding_boxes' not in caps:
                     raise ValueError('detection requires a spatial detector')
-                if feature.startswith('live.') and not caps & {'image_understanding', 'visual_decision', 'object_detection', 'object_tracking'}:
+                if feature.startswith('live.') and any(self.providers[p].adapter in ('openai-chat-vision','laya-vision') and 'image_understanding' not in self.providers[p].capabilities for p in route.providers):
+                    raise ValueError('live semantic providers must accept images')
+                if feature.startswith('live.') and any(not set(self.providers[p].capabilities) & {'image_understanding', 'visual_decision', 'object_detection', 'object_tracking'} for p in route.providers):
                     raise ValueError('live route requires visual capability')
         return self
 

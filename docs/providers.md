@@ -8,9 +8,9 @@ All inference is remote. Providers declare capabilities, an HTTPS endpoint **env
 | `openai-embeddings` | POST `/embeddings`, model/input; `data[0].embedding` | finite nonzero text vectors only |
 | `openai-transcription` | multipart POST `/audio/transcriptions`, file/model; `text` | transcription of bounded browser WebM clips |
 | `detection-http` | POST `/detect` using the gateway contract below | validated normalized boxes; persistent IDs only if object_tracking is explicitly declared |
-| `laya-vision` | **unavailable pending authoritative Laya/Jev API documentation** | no capabilities assumed; calls fail `protocol_unverified` |
+| `laya-vision` | POST `/v1/system-one`, object state/questions and bare `imageBase64`; source and captured-live response forms | bounded `noul` image-inspectability score mapped to an advisory decision; no boxes or generated prose |
 
-These adapters are mock-contract tested. No real Laya, NVIDIA, VLM, embedding or Whisper endpoint was available during implementation. OpenAI compatibility alone does not imply image, audio, video, tracking or embedding support. Verify the exact model and protocol before declaring capabilities. Laya can use the OpenAI adapter only if its official documentation establishes that protocol; do not simply rename an arbitrary endpoint.
+All adapters are mock-contract tested. The release review additionally verified a synthetic image against the live Laya gateway; NVIDIA, VLM, embedding and Whisper remain mock-only. See release-readiness.md for exact evidence. OpenAI compatibility alone does not imply image, audio, video, tracking or embedding support. Verify the exact model and protocol before declaring capabilities. Laya can use the OpenAI adapter only if its official documentation establishes that protocol; do not simply rename an arbitrary endpoint.
 
 ## Detection gateway
 
@@ -44,6 +44,24 @@ VM_STATE_DIR=/path/to/config-state python scripts/reindex-remote.py --source dat
 
 Only run after explicit approval to send those transcripts to the configured destination. Set `VRAG_INDEX_DIR` to the new directory and restart the API. Model **and endpoint** identity plus dimensions are checked before query. Changing either requires a separate index. Text-only providers create only text vectors; image/video/audio/fused views are unavailable. MRL truncation is disabled unless explicitly supported in the index manifest. Existing legacy offline scripts still use original local modules; install their extras on a separate suitable GPU machine, never in the Space. Remote RAG sends bounded precomputed segment keyframes, transcripts and source timestamps, never local file URLs; raw audio RAG is explicitly unavailable.
 
-## Supplied Laya router
+## Verified Laya router contract (release review)
 
-The user identified `https://leon4gr45-needle-router.hf.space` with GET `/health`, `/ready`, `/v1/info` and POST `/v1/system-one`. Endpoint names establish where to inspect metadata, but do not establish System-1 JSON/image encoding or response semantics. During this task the platform proxy returned HTTP 403 at CONNECT, before reaching the service; no service authentication/readiness conclusion follows. The environment draft includes this exact allowed hostname, LAYA_BASE_URL, and a LAYA_API_KEY secret requirement (no secret value). Apply settings and securely supply the binding before retrying `/v1/info` and `/openapi.json`. `config/examples/laya-pending.yaml` preserves the supplied endpoint reference with disabled routes and no invented capabilities until the protocol is verified.
+Reference source: [JsonLord/laya-inference at 77b324ac6c72efee883c41fd333e84007c55bed0](https://github.com/JsonLord/laya-inference/tree/77b324ac6c72efee883c41fd333e84007c55bed0). Validation reads `state` (object), `questions` (typed question map), and optional bare `imageBase64`. The top-level JSON key `image` is not that wire protocol. We use JSON and do not rely on the source's inconsistent single-file multipart handling.
+
+The checked-in reference vision service is a placeholder, so it cannot establish real deployed inference. Read-only live `/health`, `/ready` and `/v1/info` checks reported ready, placeholder=false and model thaitea/laya-vision. A generated 64×64 white image returned backend laya-vision, model thaitea/laya-vision and checkpoint revision f2fe3c12cb6d04c59d8a190250bf3fb40fc828dc. The captured response is in tests/fixtures/laya-live-synthetic.json. The remote checkpoint's PyTorch/runtime metadata describes the external service, not packages installed in Visual Mentor.
+
+The source response uses `results.<question>`; the deployed gateway uses `results.answers.<question>` with additional provenance. Only these two evidenced forms are accepted. Wrong backend/model, placeholder markers, missing typed noul answers and non-probability values fail closed. The current adapter asks one fixed noul question, "Is this image clear enough for human visual inspection?", with bounded advisory task context. It reports the probability as a visual_assessment decision, never as a detection, spatial coordinate, autonomous action or free-form scene description. Source choice/score formats are documented by the upstream service but are not exposed as additional product features in this release.
+
+Set LAYA_BASE_URL to `https://leon4gr45-needle-router.hf.space` (gateway root, no `/v1` suffix). Use model `thaitea/laya-vision`, timeout_ms 60000 and concurrency 1. The public live call did not require credentials; add api_key_secret: LAYA_API_KEY only when that endpoint requires it. The adapter always checks the configured expected model; do not relabel another endpoint as Laya.
+
+Use laya-only.yaml or laya-nvidia-hybrid.yaml after destination approval; the older laya-pending template remains a disabled historical default. Hybrid routing keeps Laya decisions and detector boxes separate, preserving provenance. It does not attach semantic scores to a specific object or invent a tracker. The NVIDIA gateway contract is still unverified against a real endpoint.
+
+From the prepared repository, an explicit synthetic-only connection check is:
+
+```bash
+LAYA_BASE_URL=https://leon4gr45-needle-router.hf.space \
+VM_ALLOWED_HOSTS=leon4gr45-needle-router.hf.space \
+/workspace/visual-mentor-venv/bin/python scripts/check-laya.py --synthetic
+```
+
+Without --synthetic, this helper reads metadata only. Secrets, when required, must already be supplied securely through the environment. No real camera image is read by this helper. `/openapi.json` and `/docs` are currently 404 on the remote gateway; its deployed source revision remains unknown. Source publication/schema changes are an operator task and were not performed.

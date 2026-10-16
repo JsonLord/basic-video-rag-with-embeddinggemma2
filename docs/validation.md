@@ -1,5 +1,7 @@
 # Validation report — 2026-10-16
 
+Historical evidence for commit 4549ff5. See [release-readiness.md](release-readiness.md) for the subsequent qualification, fixes and updated Laya integration results.
+
 Branch: `feature/visual-mentor`. Baseline: `7f8922cad8adb7e73a5f95ecfbf5b1a73e5bd46f`. Application source through `10a591d`; subsequent report commit records final measurements. No production deployment or DGX services were changed.
 
 ## Final executed checks

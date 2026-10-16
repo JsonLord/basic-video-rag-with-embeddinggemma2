@@ -7,6 +7,7 @@ import json
 import asyncio
 import time
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile
 from .mentor_api import user
@@ -19,7 +20,17 @@ from .providers import ProviderFailure
 from .index import get_index
 
 VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
-app = FastAPI(title="Visual Mentor", version="1.0")
+@asynccontextmanager
+async def lifespan(app):
+    from .mentor_api import session_cleanup
+    cleanup = asyncio.create_task(session_cleanup())
+    try:
+        yield
+    finally:
+        cleanup.cancel()
+        await asyncio.gather(cleanup, return_exceptions=True)
+
+app = FastAPI(title="Visual Mentor", version="1.0", lifespan=lifespan)
 # Starlette's StaticFiles honours Range requests, so the browser can seek the mp4s.
 app.mount("/media", StaticFiles(directory=VIDEOS_DIR), name="media")
 
@@ -199,17 +210,25 @@ request_slots = asyncio.Semaphore(16)
 
 @app.middleware('http')
 async def bounded_body(request: Request, call_next):
+    if request.url.path == '/api/health':
+        response = await call_next(request)
+        response.headers['Cache-Control'] = 'no-store'
+        return response
     if request_slots.locked():
         return JSONResponse(status_code=429, content={'detail':'server concurrency limit'})
     async with request_slots:
         if request.method in ('POST', 'PUT', 'PATCH'):
             size = 0
             chunks = []
-            async for chunk in request.stream():
-                size += len(chunk)
-                if size > 3 * 1024 * 1024:
-                    return JSONResponse(status_code=413, content={'detail':'request exceeds 3 MiB'})
-                chunks.append(chunk)
+            try:
+                async with asyncio.timeout(10):
+                    async for chunk in request.stream():
+                        size += len(chunk)
+                        if size > 3 * 1024 * 1024:
+                            return JSONResponse(status_code=413, content={'detail':'request exceeds 3 MiB'})
+                        chunks.append(chunk)
+            except TimeoutError:
+                return JSONResponse(status_code=408, content={'detail':'request upload timed out'})
             request._body = b''.join(chunks)
         response = await call_next(request)
     response.headers['Cache-Control'] = 'no-store' if request.url.path.startswith('/api/') else 'private, max-age=60'

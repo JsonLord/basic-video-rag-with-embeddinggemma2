@@ -3,13 +3,15 @@ Reports CPU app startup/HTTP workload, not live inference. Requires Docker CLI.
 """
 import concurrent.futures
 import json
+import os
 import subprocess
 import time
 import uuid
 
 name='visual-mentor-measure-'+uuid.uuid4().hex[:8]
-image='visual-mentor:validation'
+image=os.environ.get('VM_RUNTIME_IMAGE','visual-mentor:validation')
 def command(*args):
+    if args[0]=='docker':args=('docker','--host=unix:///var/run/docker.sock',*args[1:])
     return subprocess.check_output(args,text=True).strip()
 probe="import urllib.request,json; print(json.load(urllib.request.urlopen('http://127.0.0.1:7860/api/health',timeout=2))['status'])"
 rss_function = """
@@ -33,7 +35,7 @@ try:
     command('docker','run','-d','--name',name,'--memory=1g','--cpus=2',image)
     for _ in range(100):
         try:
-            p = subprocess.run(['docker','exec',name,'python','-c',probe],text=True,capture_output=True)
+            p = subprocess.run(['docker','--host=unix:///var/run/docker.sock','exec',name,'python','-c',probe],text=True,capture_output=True)
             if p.returncode == 0 and p.stdout.strip() == 'ok':break
         except subprocess.CalledProcessError:pass
         time.sleep(.1)
@@ -55,8 +57,10 @@ def request(i):
    assert r.status==200
    r.read()
  except Exception as e:raise RuntimeError(path+' failed: '+str(e))
-with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:list(pool.map(request,range(180)))
-stop.set();thread.join()
+try:
+ with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:list(pool.map(request,range(180)))
+finally:
+ stop.set();thread.join()
 print(json.dumps({'requests':180,'peak_process_rss_bytes':max(samples)}))
 """
     result=json.loads(command('docker','exec',name,'python','-c',workload))
@@ -65,4 +69,4 @@ print(json.dumps({'requests':180,'peak_process_rss_bytes':max(samples)}))
     output={'image_id':command('docker','inspect',name,'--format','{{.Image}}'),'image_bytes':int(command('docker','image','inspect',image,'--format','{{.Size}}')),'startup_seconds':round(ready,3),'idle_process_rss_bytes':idle['rss_bytes'],'post_workload_process_rss_bytes':after['rss_bytes'],'sampled_peak_process_rss_bytes':max(idle['rss_bytes'],after['rss_bytes'],result['peak_process_rss_bytes']),'cgroup_peak_bytes':peak,'forbidden_packages':idle['forbidden_packages'],'workload':result,'limits':'2 CPUs / 1 GiB; no GPU; no providers configured'}
     print(json.dumps(output,indent=2))
 finally:
-    subprocess.run(['docker','rm','-f',name],stdout=subprocess.DEVNULL,check=False)
+    subprocess.run(['docker','--host=unix:///var/run/docker.sock','rm','-f',name],stdout=subprocess.DEVNULL,check=False)

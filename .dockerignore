@@ -13,3 +13,6 @@ data
 
 web/test-results
 web/playwright-report
+
+web/tests
+web/playwright.config.ts
