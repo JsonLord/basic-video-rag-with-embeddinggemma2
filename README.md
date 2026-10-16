@@ -1,3 +1,13 @@
+---
+title: Visual Mentor
+sdk: docker
+app_port: 7860
+---
+
+# Visual Mentor
+
+CPU-only remote inference deployment: see [Hugging Face guide](docs/deployment-hf.md). Original offline Video RAG workflow is retained below; install `uv sync --extra offline --extra legacy-local` only on a separate GPU development machine. Never install `serve/` in the CPU Space.
+
 # Video RAG with EmbeddingGemma 2 + Gemma 4 12B
 
 ▶️ **Video walkthrough:** https://youtu.be/Q8T9lvtGFNw

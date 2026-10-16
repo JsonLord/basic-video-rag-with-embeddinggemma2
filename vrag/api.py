@@ -192,3 +192,23 @@ from fastapi.responses import JSONResponse
 @app.exception_handler(ProviderFailure)
 async def provider_error(request: Request, exc: ProviderFailure):
     return JSONResponse(status_code=503, content={"detail": exc.code})
+
+from .mentor_api import router as mentor_router
+app.include_router(mentor_router)
+
+@app.middleware('http')
+async def bounded_body(request: Request, call_next):
+    if request.method in ('POST', 'PUT', 'PATCH'):
+        size = 0
+        chunks = []
+        async for chunk in request.stream():
+            size += len(chunk)
+            if size > 3 * 1024 * 1024:
+                return JSONResponse(status_code=413, content={'detail':'request exceeds 3 MiB'})
+            chunks.append(chunk)
+        request._body = b''.join(chunks)
+    response = await call_next(request)
+    response.headers['Cache-Control'] = 'no-store' if request.url.path.startswith('/api/') else 'private, max-age=60'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Referrer-Policy'] = 'same-origin'
+    return response
