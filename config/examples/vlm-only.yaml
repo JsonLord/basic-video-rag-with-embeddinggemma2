@@ -1,0 +1,18 @@
+version: 1
+profile: vlm-only
+providers:
+  vlm:
+    adapter: openai-chat-vision
+    base_url_env: VLM_BASE_URL
+    api_key_secret: VLM_API_KEY
+    model: replace-with-verified-model-id
+    capabilities: [image_understanding, reasoning, visual_decision]
+    trust: approved_sensitive
+    timeout_ms: 10000
+    concurrency: 2
+features:
+  live.camera1.scene: {strategy: single, providers: [vlm]}
+  live.camera2.scene: {strategy: single, providers: [vlm]}
+  live.visual_decision: {strategy: single, providers: [vlm]}
+  rag.reasoning: {strategy: single, providers: [vlm]}
+  mentor.reasoning: {strategy: single, providers: [vlm]}

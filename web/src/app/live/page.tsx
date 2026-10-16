@@ -87,7 +87,7 @@ function Microphone({session,onText}:{session:string|null;onText:(s:string)=>voi
   const recorder=useRef<MediaRecorder|null>(null), mic=useRef<MediaStream|null>(null), timer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const [recording,setRecording]=useState(false), [error,setError]=useState("");
   const disposed=useRef(false);
-  useEffect(()=>{disposed.current=false;return()=>{disposed.current=true;recorder.current?.stop();mic.current?.getTracks().forEach(t=>t.stop());if(timer.current)clearTimeout(timer.current);};},[]);
+  useEffect(()=>{disposed.current=false;return()=>{disposed.current=true;if(recorder.current?.state==="recording")recorder.current.stop();mic.current?.getTracks().forEach(t=>t.stop());if(timer.current)clearTimeout(timer.current);};},[]);
   useEffect(()=>{if(!session){if(recorder.current?.state==="recording")recorder.current.stop();mic.current?.getTracks().forEach(t=>t.stop());}},[session]);
   async function start(){
     if(!session)return;
@@ -97,7 +97,7 @@ function Microphone({session,onText}:{session:string|null;onText:(s:string)=>voi
       if(disposed.current){s.getTracks().forEach(t=>t.stop());return;}
       mic.current=s;const r=new MediaRecorder(s,{mimeType:"audio/webm",audioBitsPerSecond:64000});recorder.current=r;const chunks:Blob[]=[];
       r.ondataavailable=e=>{chunks.push(e.data);};
-      r.onstop=async()=>{s.getTracks().forEach(t=>t.stop());setRecording(false);if(timer.current)clearTimeout(timer.current);if(disposed.current)return;
+      r.onstop=async()=>{s.getTracks().forEach(t=>t.stop());if(timer.current)clearTimeout(timer.current);if(disposed.current)return;setRecording(false);
         try{const blob=new Blob(chunks,{type:"audio/webm"});if(blob.size>2000000)throw new Error("Audio clip too large");const bytes=new Uint8Array(await blob.arrayBuffer());let binary="";for(const b of bytes)binary+=String.fromCharCode(b);const response=await api<{text:string}>(`/api/live/sessions/${session}/transcribe`,{audio:btoa(binary),duration_ms:15000});onText(response.text||"No transcription result");}catch(e){setError(e instanceof Error?e.message:String(e));}};
       r.start();setRecording(true);timer.current=setTimeout(()=>{if(r.state==="recording")r.stop();},15000);
     }catch(e){setError(e instanceof Error?e.message:String(e));}

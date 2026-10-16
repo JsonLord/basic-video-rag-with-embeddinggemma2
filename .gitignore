@@ -18,3 +18,7 @@ web/.next/
 .env
 .env.*
 *.pem
+
+# Browser validation artifacts
+web/test-results/
+web/playwright-report/

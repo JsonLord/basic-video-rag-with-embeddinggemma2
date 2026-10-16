@@ -3,6 +3,7 @@ import asyncio
 import base64
 import hashlib
 import json
+import os
 import time
 from datetime import datetime, timezone
 import numpy as np
@@ -14,10 +15,11 @@ from .settings import store
 
 def space_id(provider):
     # Endpoint reference plus model and dimension identify a distinct embedding space.
-    return hashlib.sha256(f'{provider.base_url_env}:{provider.model}'.encode()).hexdigest()[:16]
+    return hashlib.sha256(f'{os.environ.get(provider.base_url_env, "")}:{provider.model}'.encode()).hexdigest()[:16]
 
-async def query(text):
-    _, config = store.snapshot()
+async def query(text, config=None):
+    if config is None:
+        _, config = store.snapshot()
     rule = config.features.get('rag.text_embeddings')
     if not rule or not rule.enabled or rule.strategy != 'single':
         raise ProviderFailure('embedding_provider_unavailable')
@@ -54,12 +56,12 @@ def build_messages(question, hits, use_video, use_audio):
                 images.append('data:image/jpeg;base64,' + base64.b64encode(frame.read_bytes()).decode())
     return {'text': text[:64000], 'images': images[:8]}
 
-def answer(question, view='text', dim=768, k=4, use_video=True, use_audio=False):
+async def _answer(question, view, dim, k, use_video, use_audio):
     start = time.monotonic()
-    hits = get_index().search(encode_query(question), view=view, dim=dim, k=min(k, 8))
-    retrieve = time.monotonic() - start
     _, config = store.snapshot()
-    out, statuses = asyncio.run(route(config, 'rag.reasoning', build_messages(question, hits, use_video, use_audio)))
+    hits = get_index().search(await query(question, config), view=view, dim=dim, k=min(k, 8))
+    retrieve = time.monotonic() - start
+    out, statuses = await route(config, 'rag.reasoning', build_messages(question, hits, use_video, use_audio))
     if not out.text:
         raise ProviderFailure('reasoning_provider_unavailable')
     return {'question': question, 'answer': out.text, 'clips': hits,
@@ -67,3 +69,6 @@ def answer(question, view='text', dim=768, k=4, use_video=True, use_audio=False)
             'usage': {'prompt_tokens': 0, 'completion_tokens': 0}, 'usage_available': False,
             'provider_results': statuses, 'timing': {'retrieve_s': retrieve, 'generate_s': time.monotonic()-start-retrieve},
             'created_at': datetime.now(timezone.utc).isoformat()}
+
+def answer(question, view='text', dim=768, k=4, use_video=True, use_audio=False):
+    return asyncio.run(_answer(question, view, dim, k, use_video, use_audio))

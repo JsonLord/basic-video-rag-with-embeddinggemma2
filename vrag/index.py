@@ -18,12 +18,15 @@ RRF_K = 60
 def truncate(x: np.ndarray, dim: int) -> np.ndarray:
     """MRL truncation. Re-normalising is required: a sliced unit vector is no longer unit length."""
     x = x[..., :dim]
-    return x / np.linalg.norm(x, axis=-1, keepdims=True)
+    return x / np.maximum(np.linalg.norm(x, axis=-1, keepdims=True), 1e-12)
 
 
 class Index:
     def __init__(self):
         self.segments: list[dict] = json.loads((INDEX_DIR / "segments.json").read_text()) if (INDEX_DIR / "segments.json").exists() else []
+        manifest_path = INDEX_DIR / 'manifest.json'
+        manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
+        self.dims = manifest.get('mrl_dims', [manifest['dimension']]) if 'dimension' in manifest else DIMS
         self.by_id = {s["id"]: i for i, s in enumerate(self.segments)}
         self.views = {v: np.load(INDEX_DIR / f"{v}.npy") for v in VIEWS if (INDEX_DIR / f"{v}.npy").exists()}
         self._trunc = {}

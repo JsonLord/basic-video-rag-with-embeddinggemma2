@@ -1,5 +1,7 @@
 "use client";
 
+import {useEffect, useState} from "react";
+import {getJSON, type Stats} from "@/lib/api";
 import { DIMS, type View } from "@/lib/api";
 import { VIEW_INFO, VIEW_ORDER } from "@/lib/views";
 
@@ -45,11 +47,13 @@ export function ViewSwatch({ view }: { view: View }) {
 }
 
 export function ViewPicker({ value, onChange, views = VIEW_ORDER }: { value: View; onChange: (v: View) => void; views?: View[] }) {
+  const [available,setAvailable]=useState<View[]>(views);
+  useEffect(()=>{void getJSON<Stats>("/api/stats").then(s=>setAvailable(s.views)).catch(()=>{});},[]);
   return (
-    <Segmented
+    <div><p className="text-xs text-muted mb-1">Only indexed views are selectable. Remote text embeddings cannot encode images, audio or video.</p><Segmented
       label="View"
       value={value}
-      options={views}
+      options={available.filter(v=>views.includes(v))}
       onChange={onChange}
       render={(v) => (
         <span className="flex items-center gap-1.5" title={VIEW_INFO[v].blurb}>
@@ -57,10 +61,12 @@ export function ViewPicker({ value, onChange, views = VIEW_ORDER }: { value: Vie
           {VIEW_INFO[v].label}
         </span>
       )}
-    />
+    /></div>
   );
 }
 
 export function DimPicker({ value, onChange }: { value: number; onChange: (d: number) => void }) {
-  return <Segmented label="Dims" value={value} options={DIMS as readonly number[]} onChange={onChange} render={(d) => `${d}d`} />;
+  const [dims,setDims]=useState<readonly number[]>(DIMS);
+  useEffect(()=>{void getJSON<Stats>("/api/stats").then(s=>setDims(s.dims)).catch(()=>{});},[]);
+  return <Segmented label="Dims" value={value} options={dims} onChange={onChange} render={(d) => `${d}d`} />;
 }

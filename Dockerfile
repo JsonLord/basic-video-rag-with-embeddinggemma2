@@ -12,11 +12,11 @@ COPY --from=web /usr/local/bin/node /usr/local/bin/node
 WORKDIR /app
 COPY requirements-runtime.txt ./
 RUN --mount=type=secret,id=build_ca if [ -f /run/secrets/build_ca ]; then export PIP_CERT=/run/secrets/build_ca; fi; pip install --no-cache-dir -r requirements-runtime.txt
-COPY vrag ./vrag
-COPY config ./config
-COPY scripts/cloud-start.py ./scripts/cloud-start.py
-COPY --from=web /build/web/.next/standalone ./web/.next/standalone
-COPY --from=web /build/web/.next/static ./web/.next/standalone/.next/static
+COPY --chown=1000:1000 vrag ./vrag
+COPY --chown=1000:1000 config ./config
+COPY --chown=1000:1000 scripts/cloud-start.py ./scripts/cloud-start.py
+COPY --from=web --chown=1000:1000 /build/web/.next/standalone ./web/.next/standalone
+COPY --from=web --chown=1000:1000 /build/web/.next/static ./web/.next/standalone/.next/static
 RUN useradd -m -u 1000 mentor && mkdir -p /app/data/videos && chown -R mentor:mentor /app/data
 USER mentor
 ENV PYTHONUNBUFFERED=1 NEXT_TELEMETRY_DISABLED=1 VRAG_DATA=/app/data

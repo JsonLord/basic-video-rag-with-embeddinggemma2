@@ -1,4 +1,5 @@
 "use client";
+import {AccessToken} from "@/components/AccessToken";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -34,7 +35,7 @@ export function SearchView() {
   const params = useSearchParams();
   const [q, setQ] = useState(params.get("q") ?? "");
   const [mode, setMode] = useState<Mode>((params.get("mode") as Mode) ?? "single");
-  const [view, setView] = useState<View>((params.get("view") as View) ?? "fused");
+  const [view, setView] = useState<View>((params.get("view") as View) ?? "text");
   const [dim, setDim] = useState(Number(params.get("dim") ?? 768));
   const [single, setSingle] = useState<SearchResponse | null>(null);
   const [dims, setDims] = useState<CompareResponse | null>(null);
@@ -103,7 +104,7 @@ export function SearchView() {
   return (
     <div className="space-y-6">
       <section>
-        <h1 className="text-2xl font-semibold">Search</h1>
+        <h1 className="text-2xl font-semibold">Search</h1><AccessToken/>
         <p className="mt-1 max-w-3xl text-sm text-ink-2">
           Text queries are embedded with the <code>SearchQuery</code> prefix and scored by cosine similarity against every segment.
           Smaller Matryoshka dims are the first <em>n</em> dimensions of the same vectors, re-normalised.

@@ -14,11 +14,11 @@ import uuid
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import Response
 from PIL import Image, UnidentifiedImageError
-from pydantic import Field
+from pydantic import Field, ValidationError
 import yaml
 
 from config.schema import Strict, parse_yaml
-from .providers import ProviderFailure, destination
+from .providers import Decision, Detection, ProviderFailure, destination
 from .routing import route
 from .settings import store
 
@@ -53,6 +53,10 @@ class Rollback(Strict):
     version: int = Field(ge=1)
     expected_version: int = Field(ge=1)
 
+class DryRunInput(Strict):
+    feature: str = Field(min_length=1, max_length=100)
+    camera_id: str = Field(default="camera1", pattern="^camera[12]$")
+
 class SessionInput(Strict):
     consent: bool
 
@@ -65,6 +69,26 @@ class FrameInput(Strict):
     config_version: int = Field(ge=1)
     request_id: str = Field(max_length=100)
 
+class ProviderStatus(Strict):
+    provider: str
+    status: str
+    latency_ms: int
+
+class Observation(Strict):
+    session_id: str
+    camera_id: str
+    frame_id: int
+    captured_at: float
+    request_id: str
+    config_version: int
+    observed_at: datetime
+    source_width: int
+    source_height: int
+    detections: list[Detection]
+    decisions: list[Decision]
+    provider_results: list[ProviderStatus]
+    warnings: list[str]
+
 class AudioInput(Strict):
     audio: str = Field(max_length=2800000)
     duration_ms: int = Field(ge=1, le=15000)
@@ -76,7 +100,8 @@ class Session:
         self.last = {}
         self.busy = set()
         self.rate = {}
-        self.events = deque(maxlen=30)
+        self.events = deque(maxlen=20)
+        self.task = {'goal':'', 'step':'Observe', 'completed':False}
 
 sessions = {}
 
@@ -105,7 +130,7 @@ def providers(owner=Depends(user)):
 def get_config(owner=Depends(admin)):
     version, cfg = store.snapshot()
     return {'config_version': version, 'yaml': yaml.safe_dump(cfg.model_dump(), sort_keys=False),
-            'history': list(range(1, version+1)), 'writable': bool(store.path)}
+            'history': list(range(1, version+1)), 'writable': bool(store.path), 'config':cfg.model_dump()}
 
 @router.get('/api/config/template')
 def template(owner=Depends(admin)):
@@ -115,6 +140,10 @@ def template(owner=Depends(admin)):
 async def validate(text):
     try:
         cfg = parse_yaml(text)
+    except ValidationError as exc:
+        known = {'version','profile','providers','features','adapter','base_url_env','api_key_secret','model','capabilities','trust','timeout_ms','concurrency','strategy','result_policy','quorum','fusion','enabled','conditions','cameras','privacy','record_video','analysis_fps','width','height'}
+        errors = ['.'.join(str(k) if k in known else '<entry>' for k in e['loc']) + ': ' + e['type'] for e in exc.errors(include_input=False, include_context=False)][:8]
+        raise HTTPException(422, 'Configuration schema errors: ' + '; '.join(errors)) from None
     except Exception:
         # Never echo YAML or validation input (it may contain pasted secrets).
         raise HTTPException(422, 'Invalid YAML/schema: use unique keys, no aliases, known providers and compatible capabilities; check template') from None
@@ -124,6 +153,12 @@ async def validate(text):
         except ProviderFailure:
             raise HTTPException(422, 'Provider endpoint missing or denied: configure HTTPS public host in VM_ALLOWED_HOSTS and endpoint environment variable') from None
     return cfg
+
+@router.get('/api/config/profiles')
+def profiles(owner=Depends(admin)):
+    from pathlib import Path
+    directory = Path(__file__).parent.parent/'config/examples'
+    return {p.stem:p.read_text() for p in directory.glob('*.yaml')}
 
 @router.post('/api/config/validate')
 async def validate_config(body: ConfigInput, owner=Depends(admin)):
@@ -171,6 +206,31 @@ async def test_provider(pid: str, owner=Depends(admin)):
     await adapter.call(pid, p, payload, False)
     return {'provider': pid, 'status':'ok', 'latency_ms': round((time.monotonic()-start)*1000), 'synthetic': True}
 
+@router.post('/api/routing/dry-run')
+async def dry_run(body: DryRunInput, owner=Depends(admin)):
+    _, cfg = store.snapshot()
+    f = io.BytesIO(); Image.new('RGB', (32,32), 'white').save(f, format='JPEG')
+    out, statuses = await route(cfg, body.feature, {'text':'Synthetic routing test; no real camera data.',
+        'image':'data:image/jpeg;base64,' + base64.b64encode(f.getvalue()).decode(),
+        'camera_id':body.camera_id, 'frame_id':0, 'width':32, 'height':32}, False)
+    return {'synthetic':True, 'provider_results':statuses, 'detections':[d.model_dump() for d in out.detections], 'decisions':[d.model_dump() for d in out.decisions]}
+
+async def disconnectable(request, operation):
+    task = asyncio.create_task(operation)
+    try:
+        while not task.done():
+            done, _ = await asyncio.wait({task}, timeout=0.25)
+            if done:
+                break
+            if await request.is_disconnected():
+                task.cancel()
+                raise HTTPException(499, 'client disconnected')
+        return await task
+    finally:
+        if not task.done():
+            task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+
 @router.post('/api/live/sessions')
 def create_session(body: SessionInput, owner=Depends(user)):
     if not body.consent:
@@ -178,7 +238,7 @@ def create_session(body: SessionInput, owner=Depends(user)):
     for sid in list(sessions):
         if sessions[sid].expiry < time.monotonic():
             del sessions[sid]
-    if len(sessions) >= 64 or sum(s.owner == owner for s in sessions.values()) >= 4:
+    if len(sessions) >= 32 or sum(s.owner == owner for s in sessions.values()) >= 4:
         raise HTTPException(429, 'session limit')
     sid = secrets.token_urlsafe(24)
     sessions[sid] = Session(owner)
@@ -190,8 +250,8 @@ def delete_session(sid: str, owner=Depends(user)):
     del sessions[sid]
     return {'deleted': True}
 
-@router.post('/api/live/sessions/{sid}/frames')
-async def analyze_frame(sid: str, body: FrameInput, owner=Depends(user)):
+@router.post('/api/live/sessions/{sid}/frames', response_model=Observation)
+async def analyze_frame(sid: str, body: FrameInput, request: Request, owner=Depends(user)):
     s = session_for(sid, owner)
     version, cfg = store.snapshot()
     if body.config_version != version:
@@ -221,7 +281,7 @@ async def analyze_frame(sid: str, body: FrameInput, owner=Depends(user)):
     s.rate[body.camera_id] = time.monotonic()
     received = datetime.now(timezone.utc).isoformat()
     try:
-        out, statuses = await route(cfg, body.feature, {**body.model_dump(), 'width':width, 'height':height})
+        out, statuses = await disconnectable(request, route(cfg, body.feature, {**body.model_dump(), 'width':width, 'height':height}))
     finally:
         s.busy.discard(body.camera_id)
     # Deleting a session while an inference request is in flight discards its result.
@@ -239,7 +299,7 @@ def events(sid: str, owner=Depends(user)):
     return list(session_for(sid, owner).events)
 
 @router.post('/api/live/sessions/{sid}/transcribe')
-async def transcribe(sid: str, body: AudioInput, owner=Depends(user)):
+async def transcribe(sid: str, body: AudioInput, request: Request, owner=Depends(user)):
     s = session_for(sid, owner)
     if 'audio' in s.busy:
         raise HTTPException(429, 'audio request in flight')
@@ -254,22 +314,34 @@ async def transcribe(sid: str, body: AudioInput, owner=Depends(user)):
     _, cfg = store.snapshot()
     s.busy.add('audio'); s.rate['audio'] = time.monotonic()
     try:
-        out, statuses = await route(cfg, 'audio.transcription', {'audio':audio})
+        out, statuses = await disconnectable(request, route(cfg, 'audio.transcription', {'audio':audio}))
     finally:
         s.busy.discard('audio')
     session_for(sid, owner)
     return {'text':out.text, 'provider_results':statuses, 'duration_ms':body.duration_ms}
 
 @router.post('/api/live/sessions/{sid}/guidance')
-async def guidance(sid: str, owner=Depends(user)):
+async def guidance(sid: str, request: Request, owner=Depends(user)):
     s = session_for(sid, owner)
     if 'mentor' in s.busy or time.monotonic() - s.rate.get('mentor', 0) < 2:
         raise HTTPException(429, 'guidance rate limit')
     _, cfg = store.snapshot()
     s.busy.add('mentor'); s.rate['mentor'] = time.monotonic()
     try:
-        out, statuses = await route(cfg, 'mentor.reasoning', {'text': 'Give cautious next-step guidance from these observations, identify uncertainty. No autonomous actions. ' + str(list(s.events)[-5:])[:24000]})
+        out, statuses = await disconnectable(request, route(cfg, 'mentor.reasoning', {'text': 'Give cautious next-step guidance from these observations, identify uncertainty. No autonomous actions. ' + str(s.task) + str(list(s.events)[-5:])[:24000]}))
     finally:
         s.busy.discard('mentor')
     session_for(sid, owner)
     return {'guidance':out.text, 'provider_results':statuses, 'autonomous':False}
+
+
+class TaskInput(Strict):
+    goal: str = Field(max_length=1000)
+    step: str = Field(max_length=500)
+    completed: bool = False
+
+@router.put('/api/live/sessions/{sid}/task')
+def task_state(sid: str, body: TaskInput, owner=Depends(user)):
+    s = session_for(sid, owner)
+    s.task = body.model_dump()
+    return {'task':s.task, 'autonomous':False}

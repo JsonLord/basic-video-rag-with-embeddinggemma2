@@ -4,13 +4,15 @@ The Next.js dev server proxies /api/* and /media/* here (see web/next.config.ts)
 """
 
 import json
+import asyncio
 import tempfile
 import time
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile
+from .mentor_api import user
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from . import remote as rag
 from .config import DATA, DIMS, EXPERIMENTS_DIR, INDEX_DIR, VIDEOS_DIR, VIEWS
@@ -45,10 +47,11 @@ def stats() -> dict:
     return {
         **manifest,
         "views_built": views_built,
-        "dims": DIMS,
+        "limitations": "Remote text embeddings support text only. Image/video/audio/fused search needs a verified compatible multimodal adapter and index. Legacy indexes require explicit re-embedding.",
+        "dims": idx.dims,
         "views": idx.available_views,
         "view_descriptions": {**VIEWS, "hybrid": "Reciprocal rank fusion of text + video + audio rankings"},
-        "storage": [{"dim": d, "bytes_per_view": idx.storage_bytes(d)} for d in DIMS],
+        "storage": [{"dim": d, "bytes_per_view": idx.storage_bytes(d)} for d in idx.dims],
         "total_duration_s": sum(json.loads((VIDEOS_DIR / vid / "meta.json").read_text())["duration"]
                                 for vid in {s["video_id"] for s in idx.segments}),
     }
@@ -81,15 +84,15 @@ def video(video_id: str) -> dict:
 def _check(view: str, dim: int) -> None:
     if view not in get_index().available_views:
         raise HTTPException(400, f"view must be one of {get_index().available_views}")
-    if dim not in DIMS:
-        raise HTTPException(400, f"dim must be one of {DIMS}")
+    if dim not in get_index().dims:
+        raise HTTPException(400, f"dim must be one of {get_index().dims}; this model does not support arbitrary MRL truncation")
 
 
 @app.get("/api/search")
-def search(q: str, view: str = "fused", dim: int = 768, k: int = Query(10, le=50), video_id: str | None = None) -> dict:
+async def search(q: str = Query(max_length=8000), view: str = "text", dim: int = 768, k: int = Query(10, ge=1, le=50), video_id: str | None = None, owner=Depends(user)) -> dict:
     _check(view, dim)
     t0 = time.time()
-    qe = encode_query(q)
+    qe = await rag.query(q)
     t1 = time.time()
     hits = get_index().search(qe, view=view, dim=dim, k=k, video_id=video_id)
     return {"query": q, "view": view, "dim": dim, "hits": [_hit(h) for h in hits],
@@ -97,7 +100,7 @@ def search(q: str, view: str = "fused", dim: int = 768, k: int = Query(10, le=50
 
 
 @app.post("/api/search/image")
-async def search_image(file: UploadFile = File(...), view: str = "frame", dim: int = 768, k: int = 10) -> dict:
+async def search_image(file: UploadFile = File(...), view: str = "frame", dim: int = 768, k: int = Query(10, ge=1, le=50), owner=Depends(user)) -> dict:
     """Query by screenshot: the image is embedded with no prefix and searched against any view."""
     _check(view, dim)
     with tempfile.NamedTemporaryFile(suffix=Path(file.filename or "q.png").suffix) as tmp:
@@ -109,14 +112,14 @@ async def search_image(file: UploadFile = File(...), view: str = "frame", dim: i
 
 
 @app.get("/api/compare")
-def compare(q: str, view: str = "fused", k: int = Query(5, le=20)) -> dict:
+async def compare(q: str = Query(max_length=8000), view: str = "text", k: int = Query(5, ge=1, le=20), owner=Depends(user)) -> dict:
     """Same query at every MRL dim for one view, with overlap against the 768d results."""
     _check(view, 768)
-    qe = encode_query(q)
+    qe = await rag.query(q)
     idx = get_index()
     columns = []
     base = None
-    for dim in DIMS:
+    for dim in idx.dims:
         hits = idx.search(qe, view=view, dim=dim, k=k)
         ids = [h["id"] for h in hits]
         base = base or ids
@@ -131,29 +134,29 @@ def compare(q: str, view: str = "fused", k: int = Query(5, le=20)) -> dict:
 
 
 @app.get("/api/compare-views")
-def compare_views(q: str, dim: int = 768, k: int = Query(5, le=20)) -> dict:
+async def compare_views(q: str = Query(max_length=8000), dim: int = 768, k: int = Query(5, ge=1, le=20), owner=Depends(user)) -> dict:
     """Same query across every embedding view at one dim."""
-    _check("fused", dim)
-    qe = encode_query(q)
+    _check("text", dim)
+    qe = await rag.query(q)
     idx = get_index()
     return {"query": q, "dim": dim, "k": k,
             "columns": [{"view": v, "hits": [_hit(h) for h in idx.search(qe, view=v, dim=dim, k=k)]} for v in idx.available_views]}
 
 
 class AskRequest(BaseModel):
-    question: str
-    view: str = "fused"
+    question: str = Field(min_length=1, max_length=8000)
+    view: str = "text"
     dim: int = 768
-    k: int = 4
+    k: int = Field(default=4, ge=1, le=8)
     use_video: bool = True
     use_audio: bool = False
 
 
 @app.post("/api/ask")
-def ask(req: AskRequest) -> dict:
+async def ask(req: AskRequest, owner=Depends(user)) -> dict:
     _check(req.view, req.dim)
     try:
-        res = rag.answer(req.question, view=req.view, dim=req.dim, k=req.k, use_video=req.use_video, use_audio=req.use_audio)
+        res = await rag._answer(req.question, view=req.view, dim=req.dim, k=req.k, use_video=req.use_video, use_audio=req.use_audio)
     except Exception as e:  # generator offline etc.
         raise HTTPException(502, "generation unavailable; check provider configuration") from e
     res["clips"] = [_hit(c) for c in res["clips"]]
@@ -196,19 +199,28 @@ async def provider_error(request: Request, exc: ProviderFailure):
 from .mentor_api import router as mentor_router
 app.include_router(mentor_router)
 
+request_slots = asyncio.Semaphore(16)
+
 @app.middleware('http')
 async def bounded_body(request: Request, call_next):
-    if request.method in ('POST', 'PUT', 'PATCH'):
-        size = 0
-        chunks = []
-        async for chunk in request.stream():
-            size += len(chunk)
-            if size > 3 * 1024 * 1024:
-                return JSONResponse(status_code=413, content={'detail':'request exceeds 3 MiB'})
-            chunks.append(chunk)
-        request._body = b''.join(chunks)
-    response = await call_next(request)
+    if request_slots.locked():
+        return JSONResponse(status_code=429, content={'detail':'server concurrency limit'})
+    async with request_slots:
+        if request.method in ('POST', 'PUT', 'PATCH'):
+            size = 0
+            chunks = []
+            async for chunk in request.stream():
+                size += len(chunk)
+                if size > 3 * 1024 * 1024:
+                    return JSONResponse(status_code=413, content={'detail':'request exceeds 3 MiB'})
+                chunks.append(chunk)
+            request._body = b''.join(chunks)
+        response = await call_next(request)
     response.headers['Cache-Control'] = 'no-store' if request.url.path.startswith('/api/') else 'private, max-age=60'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['Referrer-Policy'] = 'same-origin'
     return response
+
+@app.get('/api/openapi.json', include_in_schema=False)
+def api_schema():
+    return app.openapi()

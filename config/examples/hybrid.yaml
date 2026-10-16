@@ -1,0 +1,76 @@
+version: 1
+profile: hybrid
+providers:
+  vlm:
+    adapter: openai-chat-vision
+    base_url_env: VLM_BASE_URL
+    api_key_secret: VLM_API_KEY
+    model: replace-with-verified-model-id
+    capabilities:
+    - image_understanding
+    - reasoning
+    - visual_decision
+    trust: approved_sensitive
+    timeout_ms: 10000
+    concurrency: 2
+  detector:
+    adapter: detection-http
+    base_url_env: NVIDIA_DETECTION_BASE_URL
+    api_key_secret: NVIDIA_DETECTION_API_KEY
+    model: replace-with-verified-gateway-model
+    capabilities:
+    - object_detection
+    - bounding_boxes
+    trust: approved_sensitive
+  embeddings:
+    adapter: openai-embeddings
+    base_url_env: EMBEDDINGS_BASE_URL
+    api_key_secret: EMBEDDINGS_API_KEY
+    model: replace-with-embedding-model
+    capabilities:
+    - text_embeddings
+    trust: approved_sensitive
+  whisper:
+    adapter: openai-transcription
+    base_url_env: WHISPER_BASE_URL
+    api_key_secret: WHISPER_API_KEY
+    model: replace-with-whisper-model
+    capabilities:
+    - transcription
+    trust: approved_sensitive
+features:
+  live.camera1.scene:
+    strategy: single
+    providers:
+    - vlm
+  live.camera2.scene:
+    strategy: single
+    providers:
+    - vlm
+  live.visual_decision:
+    strategy: single
+    providers:
+    - vlm
+  rag.reasoning:
+    strategy: single
+    providers:
+    - vlm
+  mentor.reasoning:
+    strategy: single
+    providers:
+    - vlm
+  live.camera2.detection:
+    strategy: parallel
+    providers:
+    - detector
+    - vlm
+    result_policy: all
+    fusion: spatial_semantic
+  rag.text_embeddings:
+    strategy: single
+    providers:
+    - embeddings
+  audio.transcription:
+    strategy: single
+    providers:
+    - whisper

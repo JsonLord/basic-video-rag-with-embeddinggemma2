@@ -1,4 +1,5 @@
 "use client";
+import {AccessToken} from "@/components/AccessToken";
 
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -78,7 +79,7 @@ function Answer({ res, onPlay }: { res: AskResponse; onPlay: (h: Hit) => void })
 
 export function AskView() {
   const [question, setQuestion] = useState("");
-  const [view, setView] = useState<View>("fused");
+  const [view, setView] = useState<View>("text");
   const [dim, setDim] = useState(768);
   const [k, setK] = useState(4);
   const [useVideo, setUseVideo] = useState(true);
@@ -116,7 +117,7 @@ export function AskView() {
     <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
       <div className="space-y-6">
         <section>
-          <h1 className="text-2xl font-semibold">Ask</h1>
+          <h1 className="text-2xl font-semibold">Ask / Mentor</h1><AccessToken/>
           <p className="mt-1 max-w-3xl text-sm text-ink-2">
             EmbeddingGemma 2 retrieves the top-k segments; Gemma 4 12B then reads each transcript and <em>watches</em> the clip
             (sampled frames, optionally the raw audio) before answering with citations.
