@@ -1,5 +1,5 @@
 ---
-title: Visual Mentor
+title: openweb
 sdk: docker
 app_port: 7860
 ---

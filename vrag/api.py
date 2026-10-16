@@ -255,3 +255,9 @@ async def safe_request_validation(request: Request, exc: RequestValidationError)
                'msg':'Invalid request field', 'type':error.get('type','invalid')}
               for error in exc.errors()[:16]]
     return JSONResponse(status_code=422, content={'detail':errors})
+from .api_docs import configure_api_docs
+configure_api_docs(app)
+@app.get('/health', include_in_schema=False)
+def top_level_health():
+    from fastapi.responses import JSONResponse
+    return JSONResponse(content={"status": "ok"}, status_code=200)
