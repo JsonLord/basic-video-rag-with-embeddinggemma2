@@ -16,3 +16,6 @@ web/playwright-report
 
 web/tests
 web/playwright.config.ts
+# Local credentials must stay out of every build stage, including nested web files.
+**/.env*
+**/*.pem
