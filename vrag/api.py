@@ -239,3 +239,19 @@ async def bounded_body(request: Request, call_next):
 @app.get('/api/openapi.json', include_in_schema=False)
 def api_schema():
     return app.openapi()
+
+from fastapi.exceptions import RequestValidationError
+
+@app.exception_handler(RequestValidationError)
+async def safe_request_validation(request: Request, exc: RequestValidationError):
+    # Default Pydantic errors echo input values (including oversized images,
+    # speech/task text or accidentally pasted credentials). Never return them.
+    fields = {'body','query','path','header','yaml','expected_version','version',
+              'consent','camera_id','frame_id','captured_at','image','feature',
+              'config_version','request_id','audio','duration_ms','goal','step',
+              'completed','question','view','dim','k','use_video','use_audio',
+              'q','video_id','file','limit','transcripts','pid','sid'}
+    errors = [{'loc':[part if isinstance(part,int) or part in fields else '<field>' for part in error.get('loc',[])],
+               'msg':'Invalid request field', 'type':error.get('type','invalid')}
+              for error in exc.errors()[:16]]
+    return JSONResponse(status_code=422, content={'detail':errors})

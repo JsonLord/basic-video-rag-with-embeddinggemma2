@@ -93,3 +93,16 @@ def test_camera_backpressure_and_frame_snapshot(client):
     r=client.post(f'/api/live/sessions/{sid}/frames',json=frame())
     assert r.status_code==200 and r.json()['config_version']==1
     assert client.post(f'/api/live/sessions/{sid}/frames',json={**frame(),'frame_id':2}).status_code==429
+
+def test_request_errors_do_not_echo_private_input(client):
+    marker='private-value-do-not-echo'
+    r=client.post('/api/live/sessions',json={'consent':marker,marker:marker})
+    assert r.status_code==422 and marker not in r.text
+    assert all('input' not in error for error in r.json()['detail'])
+
+def test_nonfinite_capture_timestamp_is_safe_validation_error(client):
+    import json
+    sid=client.post('/api/live/sessions',json={'consent':True}).json()['session_id']
+    body={**frame(),'captured_at':float('nan')}
+    r=client.post(f'/api/live/sessions/{sid}/frames',content=json.dumps(body),headers={'Content-Type':'application/json'})
+    assert r.status_code==422 and 'NaN' not in r.text and body['image'] not in r.text
