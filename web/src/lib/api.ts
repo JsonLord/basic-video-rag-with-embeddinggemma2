@@ -86,6 +86,7 @@ export interface CompareViewsResponse {
 }
 
 export interface AskResponse {
+  usage_available?: boolean;
   question: string;
   answer: string;
   settings: { view: View; dim: number; k: number; use_video: boolean; use_audio: boolean };

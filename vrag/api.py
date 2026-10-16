@@ -5,7 +5,6 @@ The Next.js dev server proxies /api/* and /media/* here (see web/next.config.ts)
 
 import json
 import asyncio
-import tempfile
 import time
 from pathlib import Path
 
@@ -16,7 +15,6 @@ from pydantic import BaseModel, Field
 
 from . import remote as rag
 from .config import DATA, DIMS, EXPERIMENTS_DIR, INDEX_DIR, VIDEOS_DIR, VIEWS
-from .remote import encode_image_query, encode_query
 from .providers import ProviderFailure
 from .index import get_index
 
@@ -82,6 +80,8 @@ def video(video_id: str) -> dict:
 
 
 def _check(view: str, dim: int) -> None:
+    if not get_index().available_views:
+        raise HTTPException(409, "No index loaded; configure remote embeddings and build a separate versioned index")
     if view not in get_index().available_views:
         raise HTTPException(400, f"view must be one of {get_index().available_views}")
     if dim not in get_index().dims:
@@ -102,13 +102,7 @@ async def search(q: str = Query(max_length=8000), view: str = "text", dim: int =
 @app.post("/api/search/image")
 async def search_image(file: UploadFile = File(...), view: str = "frame", dim: int = 768, k: int = Query(10, ge=1, le=50), owner=Depends(user)) -> dict:
     """Query by screenshot: the image is embedded with no prefix and searched against any view."""
-    _check(view, dim)
-    with tempfile.NamedTemporaryFile(suffix=Path(file.filename or "q.png").suffix) as tmp:
-        tmp.write(await file.read())
-        tmp.flush()
-        qe = encode_image_query(tmp.name)
-    hits = get_index().search(qe, view=view, dim=dim, k=k)
-    return {"query": file.filename, "view": view, "dim": dim, "hits": [_hit(h) for h in hits]}
+    raise HTTPException(409, "Remote text embeddings do not support image queries; a verified multimodal adapter is required")
 
 
 @app.get("/api/compare")
@@ -157,6 +151,8 @@ async def ask(req: AskRequest, owner=Depends(user)) -> dict:
     _check(req.view, req.dim)
     try:
         res = await rag._answer(req.question, view=req.view, dim=req.dim, k=req.k, use_video=req.use_video, use_audio=req.use_audio)
+    except ProviderFailure:
+        raise
     except Exception as e:  # generator offline etc.
         raise HTTPException(502, "generation unavailable; check provider configuration") from e
     res["clips"] = [_hit(c) for c in res["clips"]]

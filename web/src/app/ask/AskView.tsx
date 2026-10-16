@@ -58,13 +58,13 @@ function Answer({ res, onPlay }: { res: AskResponse; onPlay: (h: Hit) => void })
             {VIEW_INFO[res.settings.view].label} @ {res.settings.dim}d · k={res.settings.k}
           </span>
           <span>
-            inputs: transcript{res.settings.use_video ? " + video" : ""}
+            inputs: transcript{res.settings.use_video ? " + segment keyframes" : ""}
             {res.settings.use_audio ? " + audio" : ""}
           </span>
           <span>retrieve {(res.timing.retrieve_s * 1000).toFixed(0)} ms</span>
           <span>generate {res.timing.generate_s.toFixed(1)} s</span>
           <span>
-            {res.usage.prompt_tokens.toLocaleString()} prompt → {res.usage.completion_tokens.toLocaleString()} output tokens
+            {res.usage_available===false ? "Token usage unavailable" : `${res.usage.prompt_tokens.toLocaleString()} prompt → ${res.usage.completion_tokens.toLocaleString()} output tokens`}
           </span>
         </div>
       </div>

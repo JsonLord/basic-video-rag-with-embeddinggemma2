@@ -10,3 +10,6 @@ data
 .env*
 *.pem
 *.log
+
+web/test-results
+web/playwright-report

@@ -8,10 +8,10 @@ import { ActiveNavLinks, NavLinksView } from "./NavLinks";
 export function Nav() {
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-page/90 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center gap-8 px-6 py-3">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-6 py-3">
         <Link href="/" className="flex items-baseline gap-2">
-          <span className="text-base font-semibold">Video RAG</span>
-          <span className="text-xs text-muted">EmbeddingGemma 2 × Gemma 4 12B</span>
+          <span className="text-base font-semibold">Visual Mentor</span>
+          <span className="text-xs text-muted">Private · Remote inference</span>
         </Link>
         <Suspense fallback={<NavLinksView path={null} />}>
           <ActiveNavLinks />

@@ -7,7 +7,7 @@ import os
 import time
 from datetime import datetime, timezone
 import numpy as np
-from .config import INDEX_DIR, VIDEOS_DIR
+from .config import DATA, INDEX_DIR, VIDEOS_DIR
 from .index import get_index
 from .providers import ProviderFailure
 from .routing import route
@@ -64,11 +64,17 @@ async def _answer(question, view, dim, k, use_video, use_audio):
     out, statuses = await route(config, 'rag.reasoning', build_messages(question, hits, use_video, use_audio))
     if not out.text:
         raise ProviderFailure('reasoning_provider_unavailable')
-    return {'question': question, 'answer': out.text, 'clips': hits,
+    result = {'question': question, 'answer': out.text, 'clips': hits,
             'settings': {'view': view, 'dim': dim, 'k': k, 'use_video': use_video, 'use_audio': use_audio},
             'usage': {'prompt_tokens': 0, 'completion_tokens': 0}, 'usage_available': False,
             'provider_results': statuses, 'timing': {'retrieve_s': retrieve, 'generate_s': time.monotonic()-start-retrieve},
             'created_at': datetime.now(timezone.utc).isoformat()}
+    if os.environ.get('VRAG_SAVE_ANSWERS', 'true').lower() == 'true':
+        history = DATA / 'answers' / 'history.jsonl'
+        history.parent.mkdir(parents=True, exist_ok=True)
+        with history.open('a') as f:
+            f.write(json.dumps(result) + '\n')
+    return result
 
 def answer(question, view='text', dim=768, k=4, use_video=True, use_audio=False):
     return asyncio.run(_answer(question, view, dim, k, use_video, use_audio))

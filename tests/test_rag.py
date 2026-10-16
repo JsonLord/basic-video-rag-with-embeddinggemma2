@@ -12,6 +12,7 @@ from vrag.settings import store
 
 @pytest.fixture
 def corpus(tmp_path,monkeypatch):
+    monkeypatch.setattr('vrag.remote.DATA',tmp_path)
     index=tmp_path/'index';index.mkdir();videos=tmp_path/'videos';videos.mkdir()
     video=videos/'v1';video.mkdir();(video/'segments').mkdir()
     seg={'id':'v1_000','video_id':'v1','title':'Demo','idx':0,'start':1,'end':3,'text':'a hand'}

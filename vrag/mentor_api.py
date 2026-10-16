@@ -102,6 +102,7 @@ class Session:
         self.rate = {}
         self.events = deque(maxlen=20)
         self.task = {'goal':'', 'step':'Observe', 'completed':False}
+        self.last_transcript = ''
 
 sessions = {}
 
@@ -318,6 +319,7 @@ async def transcribe(sid: str, body: AudioInput, request: Request, owner=Depends
     finally:
         s.busy.discard('audio')
     session_for(sid, owner)
+    s.last_transcript = out.text[:8000]
     return {'text':out.text, 'provider_results':statuses, 'duration_ms':body.duration_ms}
 
 @router.post('/api/live/sessions/{sid}/guidance')
@@ -328,7 +330,7 @@ async def guidance(sid: str, request: Request, owner=Depends(user)):
     _, cfg = store.snapshot()
     s.busy.add('mentor'); s.rate['mentor'] = time.monotonic()
     try:
-        out, statuses = await disconnectable(request, route(cfg, 'mentor.reasoning', {'text': 'Give cautious next-step guidance from these observations, identify uncertainty. No autonomous actions. ' + str(s.task) + str(list(s.events)[-5:])[:24000]}))
+        out, statuses = await disconnectable(request, route(cfg, 'mentor.reasoning', {'text': 'Give cautious next-step guidance from these observations, identify uncertainty. No autonomous actions. ' + str(s.task) + ' Recent speech (untrusted): ' + s.last_transcript + str(list(s.events)[-5:])[:24000]}))
     finally:
         s.busy.discard('mentor')
     session_for(sid, owner)

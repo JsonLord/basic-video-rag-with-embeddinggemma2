@@ -18,3 +18,14 @@ Each milestone receives tests and a commit. No production deployment or DGX modi
 ## Design
 
 Keep the existing Next.js application and data APIs. The CPU backend owns configuration snapshots, destination validation, adapters, routing and ephemeral sessions. Browser cameras never belong to the server. Secrets remain server-side environment references. Remote embedding spaces require explicit index metadata; legacy indexes remain inspectable but cannot be searched with a different remote model. The standalone frontend is necessary because existing video detail routes are dynamic and cannot be exported without knowing the complete library at build time.
+
+## Implemented boundaries
+
+- `config/schema.py`: strict immutable schema and bounded YAML parser; `vrag/settings.py`: deep snapshots, version checks and atomic history.
+- `vrag/providers.py`: remote HTTP adapters and destination validation; `vrag/routing.py`: deterministic strategies, cancellation and typed fusion.
+- `vrag/remote.py`: CPU RAG facade; `scripts/reindex-remote.py`: separate remote transcript indexes; original offline/local modules retained.
+- `vrag/mentor_api.py`: authenticated session/configuration contracts, in-memory observations and advisory task state. `vrag/research.py` is an extension protocol only.
+- `web/src/app/live`: browser capture and correlation, distinct exact-frame overlays; `models`: registry, routing matrix and YAML/version controls.
+- Next standalone proxies `/api` and `/media` to loopback FastAPI, which retains Range media serving. `scripts/cloud-start.py` supervises both; Docker exposes 7860 only. No local AI packages enter the production image.
+
+The implementation does not claim a working Laya protocol or direct compatibility with an unspecified NVIDIA endpoint. The detection adapter uses a documented explicit gateway contract. Real inference and private Space deployment require integration validation. Security and persistence boundaries are documented in security.md; measured validation is in validation.md.

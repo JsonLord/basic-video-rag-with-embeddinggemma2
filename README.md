@@ -70,7 +70,7 @@ recall@5 (exact source segment in top 5):
 Two separate uv environments, so vLLM's pinned torch/transformers don't clash with the embedding stack:
 
 ```bash
-uv sync                     # pipeline + API (torch cu130, transformers 5.19, sentence-transformers 6.1)
+uv sync --extra offline --extra legacy-local  # GPU-only offline pipeline; not the CPU Space
 (cd serve && uv sync)       # vLLM 0.23.0 for Gemma 4 12B QAT
 (cd web && npm install)     # Next.js site
 ```

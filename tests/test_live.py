@@ -64,3 +64,10 @@ def test_box_coordinates():
         Detection(detection_id='x',label='hand',bbox_xyxy=[0.8,0,0.1,1],confidence=1,source='detector')
     with pytest.raises(ValueError):
         Detection(detection_id='x',label='hand',bbox_xyxy=[0,0,2,1],confidence=1,source='detector')
+
+def test_advisory_task_state_is_owned_and_bounded(client):
+    sid=client.post('/api/live/sessions',json={'consent':True}).json()['session_id']
+    r=client.put(f'/api/live/sessions/{sid}/task',json={'goal':'Assemble fixture','step':'Inspect alignment','completed':False})
+    assert r.status_code==200 and r.json()['autonomous'] is False
+    assert sessions[sid].task['goal']=='Assemble fixture'
+    assert client.put(f'/api/live/sessions/{sid}/task',json={'goal':'x'*1001,'step':'x'}).status_code==422
