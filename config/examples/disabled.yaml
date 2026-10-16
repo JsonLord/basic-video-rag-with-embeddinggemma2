@@ -1,0 +1,11 @@
+version: 1
+profile: local-preview
+providers: {}
+features: {}
+cameras:
+  camera1: {analysis_fps: 1, width: 640, height: 480}
+  camera2: {analysis_fps: 1, width: 640, height: 480}
+privacy:
+  record_video: false
+  upload_only_on_explicit_start: true
+  require_approved_destination_for_camera: true

@@ -23,7 +23,7 @@ def truncate(x: np.ndarray, dim: int) -> np.ndarray:
 
 class Index:
     def __init__(self):
-        self.segments: list[dict] = json.loads((INDEX_DIR / "segments.json").read_text())
+        self.segments: list[dict] = json.loads((INDEX_DIR / "segments.json").read_text()) if (INDEX_DIR / "segments.json").exists() else []
         self.by_id = {s["id"]: i for i, s in enumerate(self.segments)}
         self.views = {v: np.load(INDEX_DIR / f"{v}.npy") for v in VIEWS if (INDEX_DIR / f"{v}.npy").exists()}
         self._trunc = {}

@@ -12,20 +12,16 @@ from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import rag, transcribe
+from . import remote as rag
 from .config import DATA, DIMS, EXPERIMENTS_DIR, INDEX_DIR, VIDEOS_DIR, VIEWS
-from .embedder import encode_image_query, encode_query, get_model
+from .remote import encode_image_query, encode_query
+from .providers import ProviderFailure
 from .index import get_index
 
-app = FastAPI(title="vrag")
+VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
+app = FastAPI(title="Visual Mentor", version="1.0")
 # Starlette's StaticFiles honours Range requests, so the browser can seek the mp4s.
 app.mount("/media", StaticFiles(directory=VIDEOS_DIR), name="media")
-
-
-@app.on_event("startup")
-def warm() -> None:
-    get_model()
-    get_index()
 
 
 def _video_meta(vdir: Path) -> dict:
@@ -66,6 +62,8 @@ def videos() -> list[dict]:
 
 @app.get("/api/videos/{video_id}")
 def video(video_id: str) -> dict:
+    if not video_id.replace("-", "").replace("_", "").isalnum():
+        raise HTTPException(400, "invalid video ID")
     vdir = VIDEOS_DIR / video_id
     if not (vdir / "meta.json").exists():
         raise HTTPException(404, "unknown video")
@@ -76,7 +74,7 @@ def video(video_id: str) -> dict:
         "segments": [{**s, "id": f"{video_id}_{s['idx']:03d}", "frame": f"/media/{video_id}/segments/{s['idx']:03d}.jpg"} for s in segs],
         "transcript": transcript,
         # Every engine's transcript, so the UI can compare them (e.g. whisper vs gemma).
-        "transcripts": {engine: json.loads(p.read_text()) for engine, p in transcribe.available(vdir).items()},
+        "transcripts": {engine: json.loads(p.read_text()) for engine, p in {p.stem.split(".", 1)[1]: p for p in vdir.glob("transcript.*.json")}.items()},
     }
 
 
@@ -157,7 +155,7 @@ def ask(req: AskRequest) -> dict:
     try:
         res = rag.answer(req.question, view=req.view, dim=req.dim, k=req.k, use_video=req.use_video, use_audio=req.use_audio)
     except Exception as e:  # generator offline etc.
-        raise HTTPException(502, f"generation failed: {e}")
+        raise HTTPException(502, "generation unavailable; check provider configuration") from e
     res["clips"] = [_hit(c) for c in res["clips"]]
     return res
 
@@ -174,7 +172,7 @@ def answers(limit: int = 50) -> list[dict]:
 
 
 @app.get("/api/experiments")
-def experiments(transcripts: str | None = None) -> dict:
+def experiments(transcripts: str | None = Query(None, pattern="^[a-zA-Z0-9_-]+$")) -> dict:
     """Latest results, or the run over a specific transcript engine (?transcripts=whisper|gemma)."""
     p = EXPERIMENTS_DIR / (f"results.{transcripts}.json" if transcripts else "results.json")
     if not p.exists():
@@ -187,3 +185,10 @@ def experiments(transcripts: str | None = None) -> dict:
         if s:
             q["segment"] = _hit({k: s[k] for k in ("id", "video_id", "title", "idx", "start", "end")})
     return res
+
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(ProviderFailure)
+async def provider_error(request: Request, exc: ProviderFailure):
+    return JSONResponse(status_code=503, content={"detail": exc.code})
