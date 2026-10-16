@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim AS web
+FROM node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5 AS web
 WORKDIR /build/web
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY web/package*.json ./
@@ -6,7 +6,7 @@ RUN --mount=type=secret,id=build_ca if [ -f /run/secrets/build_ca ]; then export
 COPY web/ ./
 RUN npm run build
 
-FROM python:3.12-slim-bookworm AS runtime
+FROM python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258 AS runtime
 RUN export http_proxy="$HTTP_PROXY" https_proxy="$HTTPS_PROXY"; apt-get update && apt-get install -y --no-install-recommends ca-certificates libatomic1 && rm -rf /var/lib/apt/lists/*
 COPY --from=web /usr/local/bin/node /usr/local/bin/node
 WORKDIR /app
