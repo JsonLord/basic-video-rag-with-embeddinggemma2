@@ -137,7 +137,7 @@ export interface Experiments {
 }
 
 export async function getJSON<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, init);
+  const res = await fetch(path, {...init, headers:{...init?.headers, ...(typeof window !== "undefined" && sessionStorage.getItem("vm-user-token") ? {Authorization:`Bearer ${sessionStorage.getItem("vm-user-token")}`} : {})}});
   if (!res.ok) {
     let detail = res.statusText;
     try {
