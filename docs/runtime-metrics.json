@@ -1,0 +1,15 @@
+{
+  "image_id": "sha256:b184a2493d5b2e40ce3f06225b985ccd476f302577cc436ee72e399908ad787e",
+  "image_bytes": 441968902,
+  "startup_seconds": 8.035,
+  "idle_process_rss_bytes": 188088320,
+  "post_workload_process_rss_bytes": 213213184,
+  "cgroup_peak_bytes": 146104320,
+  "forbidden_packages": [],
+  "workload": {
+    "requests": 180,
+    "peak_process_rss_bytes": 212336640
+  },
+  "limits": "2 CPUs / 1 GiB; no GPU; no providers configured",
+  "sampled_peak_process_rss_bytes": 213213184
+}

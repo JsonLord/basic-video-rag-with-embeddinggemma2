@@ -12,16 +12,22 @@ image='visual-mentor:validation'
 def command(*args):
     return subprocess.check_output(args,text=True).strip()
 probe="import urllib.request,json; print(json.load(urllib.request.urlopen('http://127.0.0.1:7860/api/health',timeout=2))['status'])"
-resource="""
-import glob,json,importlib.util
-rss=0
-for p in glob.glob('/proc/[0-9]*/status'):
- try:
-  for line in open(p):
-   if line.startswith('VmRSS:'):rss+=int(line.split()[1])*1024
- except OSError:pass
-print(json.dumps({'rss_bytes':rss,'forbidden_packages':[m for m in ['torch','transformers','sentence_transformers','vllm'] if importlib.util.find_spec(m)]}))
+rss_function = """
+def app_rss():
+ import glob
+ processes={}
+ for p in glob.glob('/proc/[0-9]*/status'):
+  try:
+   fields={line.split(':',1)[0]:line.split(':',1)[1].strip() for line in open(p) if ':' in line}
+   processes[int(fields['Pid'])]=(int(fields['PPid']),int(fields.get('VmRSS','0 kB').split()[0])*1024)
+  except (OSError,ValueError):pass
+ included={1}
+ for _ in range(10):
+  included.update(pid for pid,(parent,rss) in processes.items() if parent in included)
+ return sum(rss for pid,(parent,rss) in processes.items() if pid in included)
 """
+resource = "import json,importlib.util\n" + rss_function + "\nprint(json.dumps({'rss_bytes':app_rss(),'forbidden_packages':[m for m in ['torch','transformers','sentence_transformers','vllm'] if importlib.util.find_spec(m)]}))"
+
 try:
     start=time.monotonic()
     command('docker','run','-d','--name',name,'--memory=1g','--cpus=2',image)
@@ -34,8 +40,13 @@ try:
     else:raise RuntimeError('container never became healthy')
     ready=time.monotonic()-start
     idle=json.loads(command('docker','exec',name,'python','-c',resource))
-    workload="""
-import concurrent.futures,urllib.request
+    workload=rss_function+"""
+import concurrent.futures,urllib.request,threading,time,json
+stop=threading.Event(); samples=[]
+def monitor():
+ while not stop.is_set():
+  samples.append(app_rss());time.sleep(.025)
+thread=threading.Thread(target=monitor);thread.start()
 paths=['/live','/models','/library','/search','/ask','/api/videos','/api/stats','/api/health','/api/openapi.json']
 def request(i):
  path=paths[i%len(paths)]
@@ -45,12 +56,13 @@ def request(i):
    r.read()
  except Exception as e:raise RuntimeError(path+' failed: '+str(e))
 with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:list(pool.map(request,range(180)))
-print('180 HTTP requests passed')
+stop.set();thread.join()
+print(json.dumps({'requests':180,'peak_process_rss_bytes':max(samples)}))
 """
-    result=command('docker','exec',name,'python','-c',workload)
+    result=json.loads(command('docker','exec',name,'python','-c',workload))
     after=json.loads(command('docker','exec',name,'python','-c',resource))
     peak=int(command('docker','exec',name,'cat','/sys/fs/cgroup/memory.peak'))
-    output={'image_id':command('docker','inspect',name,'--format','{{.Image}}'),'image_bytes':int(command('docker','image','inspect',image,'--format','{{.Size}}')),'startup_seconds':round(ready,3),'idle_process_rss_bytes':idle['rss_bytes'],'post_workload_process_rss_bytes':after['rss_bytes'],'cgroup_peak_bytes':peak,'forbidden_packages':idle['forbidden_packages'],'workload':result,'limits':'2 CPUs / 1 GiB; no GPU; no providers configured'}
+    output={'image_id':command('docker','inspect',name,'--format','{{.Image}}'),'image_bytes':int(command('docker','image','inspect',image,'--format','{{.Size}}')),'startup_seconds':round(ready,3),'idle_process_rss_bytes':idle['rss_bytes'],'post_workload_process_rss_bytes':after['rss_bytes'],'sampled_peak_process_rss_bytes':max(idle['rss_bytes'],after['rss_bytes'],result['peak_process_rss_bytes']),'cgroup_peak_bytes':peak,'forbidden_packages':idle['forbidden_packages'],'workload':result,'limits':'2 CPUs / 1 GiB; no GPU; no providers configured'}
     print(json.dumps(output,indent=2))
 finally:
     subprocess.run(['docker','rm','-f',name],stdout=subprocess.DEVNULL,check=False)
