@@ -1,0 +1,44 @@
+{
+  "run_id": "20261017T223752Z-a13651aa74504b7ca9a9a2f1f83e0100",
+  "repository": "JsonLord/visual-mentor-backups",
+  "credential_source": "VM_BACKUP_GITHUB_TOKEN",
+  "status": "failed",
+  "upload_decision": "NO-GO",
+  "staging_decision": "NO-GO",
+  "contents_write_verified": true,
+  "asset_readback_verified": false,
+  "http_events": [
+    {
+      "host": "api.github.com",
+      "method": "GET",
+      "status": 200,
+      "request_id": "B7D9:353E69:DAF87:2CA245:6AD3F8C0",
+      "authenticated": true,
+      "accepted_permissions": "metadata=read"
+    },
+    {
+      "host": "api.github.com",
+      "method": "POST",
+      "status": 201,
+      "request_id": "E502:35277:C81D0:28AAFC:6AD3F8C0",
+      "authenticated": true,
+      "accepted_permissions": "contents=write; contents=write,workflows=write"
+    },
+    {
+      "host": "uploads.github.com",
+      "method": "POST",
+      "status": 404,
+      "request_id": "8FF6:3E5B5B:35838A:4E7443:6AD3F8C1",
+      "authenticated": true,
+      "accepted_permissions": null
+    }
+  ],
+  "recovery_run": false,
+  "production_or_workflows_changed": false,
+  "local_age_roundtrip_verified": true,
+  "private_repository_verified": true,
+  "repository_push_permission_reported": true,
+  "release_id": 416110789,
+  "release_tag": "vm-credential-test-20261017T223752Z-a13651aa74504b7ca9a9a2f1f83e0100",
+  "failure_code": "http_rejected_404"
+}

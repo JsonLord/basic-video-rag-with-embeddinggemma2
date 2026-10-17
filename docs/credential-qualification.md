@@ -75,3 +75,32 @@ Private staging package remains prepared at deploy/hf-staging/README.md. Secure 
 credentials are still absent, and the existing public Space remains unchanged.
 **NO-GO for first private staging deployment** until a dedicated-token asset upload
 and complete GitHub-only recovery succeed and private staging access is qualified.
+
+
+## Standalone trusted-machine diagnostic prepared (18 October 2026)
+
+The independent standard-library probe is [qualify_github_release.py](../diagnostics/qualify_github_release.py).
+It needs only Python and age/age-keygen; it imports no application code, reads only
+VM_BACKUP_GITHUB_TOKEN, creates one unique test release, uses the returned validated
+upload_url, and verifies encrypted asset SHA-256 by readback. Permanent HTTP errors
+stop immediately without retries. Its new evidence filename is unique and existing
+files are refused. All prior evidence above has been preserved.
+
+[Exact Linux and Windows instructions](../diagnostics/README.md) include a gated
+full-recovery invocation after upload GO and archival of the existing recovery
+report before the unchanged harness runs. Windows execution and an independent
+trusted machine are not available in this managed Linux session.
+
+Four standalone stdlib unit tests passed: mocked successful readback/hash, removal
+of authorization on signed redirects, no fallback to GH_TOKEN, evidence-overwrite
+refusal, destination validation and permanent-rejection stopping. The managed live
+probe again created a new synthetic test release successfully, but its first asset
+upload returned 404. No asset ID/readback or complete recovery success is claimed.
+The full destructive test was not run because its upload prerequisite did not pass.
+
+New evidence: [standalone probe JSON](evidence/standalone-probes/github-release-qualification-20261017T223752Z-a13651aa74504b7ca9a9a2f1f83e0100.json).
+**Managed upload: NO-GO; full GitHub recovery: not run; first private staging: NO-GO.**
+No backup code was refactored, deployment performed, workflow activated, or existing
+release/checkpoint modified or deleted. The next action is to run this standalone
+script on the trusted laptop/Debian server with the same securely provisioned token
+and return its sanitized JSON, never the token or a proxy placeholder.
