@@ -1,0 +1,14 @@
+.git
+data
+serve
+sams-videos
+**/.env*
+**/*.pem
+**/*.key
+**/*.agekey
+**/*.age
+**/node_modules
+**/.next
+**/__pycache__
+web/test-results
+web/playwright-report

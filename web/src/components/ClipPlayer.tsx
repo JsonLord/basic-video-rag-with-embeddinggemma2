@@ -28,7 +28,7 @@ export function ClipPlayer({ clip, onClose }: { clip: ClipRef | null; onClose: (
         <video
           ref={ref}
           key={`${clip.video_id}-${clip.start}`}
-          src={`/media/${clip.video_id}/video.mp4#t=${clip.start},${clip.end}`}
+          src={`${clip.video_id.startsWith("sample-") ? "/sample/video.mp4" : `/media/${clip.video_id}/video.mp4`}#t=${clip.start},${clip.end}`}
           controls
           autoPlay
           className="aspect-video max-h-[calc(100svh-12rem)] w-full bg-black"

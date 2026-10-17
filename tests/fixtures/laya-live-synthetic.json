@@ -1,0 +1,58 @@
+{
+  "request_id": "a5d6a94c-699e-441f-aacd-c1b958bf24b6, a5d6a94c-699e-441f-aacd-c1b958bf24b6",
+  "backend": "laya-vision",
+  "model": "thaitea/laya-vision",
+  "results": {
+    "model": "laya-vlm",
+    "answers": {
+      "visual_signal": {
+        "type": "noul",
+        "noul": 0.3126,
+        "confidence": 0.6874,
+        "action": {
+          "act_probability": 0.9998
+        }
+      }
+    },
+    "usage": {
+      "input_tokens": 138,
+      "output_tokens": 0,
+      "images": 1
+    },
+    "provenance": {
+      "prompt_format_version": "1",
+      "checkpoint": {
+        "id": "thaitea/laya-vision",
+        "revision": "f2fe3c12cb6d04c59d8a190250bf3fb40fc828dc"
+      },
+      "backbone": {
+        "id": "HuggingFaceTB/SmolVLM-256M-Instruct",
+        "revision": null
+      },
+      "dtype": "float32",
+      "device": "cpu",
+      "torch": "2.14.0+cpu",
+      "transformers": "5.17.0",
+      "readout": "terminator",
+      "option_attention": "block",
+      "input_ids_sha256": "0bed35286c8256c6f5a680c72bdc571ce3a9d6c175e2ffe7741d5650a094a7dc",
+      "n_rows": 1,
+      "n_permutations": 1,
+      "temperatures": {
+        "visual_signal": 3.0531070232391357
+      }
+    }
+  },
+  "scheduler": {
+    "backend": "laya-vision",
+    "max_concurrency": 1,
+    "queue_depth_at_arrival": 0
+  },
+  "timing": {
+    "validation_ms": 0.07,
+    "queue_ms": 0,
+    "inference_ms": 13958.14,
+    "server_total_ms": 14370.02
+  },
+  "timestamp": "2026-10-16T17:16:43.048Z"
+}

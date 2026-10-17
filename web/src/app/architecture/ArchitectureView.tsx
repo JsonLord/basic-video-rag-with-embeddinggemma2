@@ -113,9 +113,7 @@ export function ArchitectureView() {
       <section>
         <h1 className="text-2xl font-semibold">Architecture</h1>
         <p className="mt-1 max-w-3xl text-sm text-ink-2">
-          How the pieces fit: an offline pipeline turns {vids} videos into {seg} segments embedded five ways by EmbeddingGemma 2;
-          at query time the same model embeds the question, a cosine search (at any Matryoshka size) picks segments, and Gemma 4
-          12B watches those clips to answer. Everything runs on one box with an RTX PRO 6000 (96 GB).
+          {vids} videos and {seg} segments. CPU media processing and remote inference share the original Video RAG interface. Text indexes, model identity and dimensions stay versioned; multimodal research views below require compatible historical indexes.
         </p>
       </section>
 
@@ -123,16 +121,16 @@ export function ArchitectureView() {
       <Section
         n={1}
         title="Runtime topology"
-        blurb="Three processes. Only the Next.js server is reachable over Tailscale; it proxies /api and /media to FastAPI, which talks to vLLM on loopback."
+        blurb="Two supervised processes. Next.js exposes port 7860; FastAPI stays on loopback. Inference uses authorized remote HTTPS providers."
       >
         <div className="flex flex-col items-stretch md:flex-row md:items-center">
-          <Node title="Browser" sub="any device on the tailnet" tag="tailscale" className="md:w-48">
-            <div className="font-mono text-xs">&lt;tailnet-host&gt;:3000</div>
+          <Node title="Browser" sub="HTTPS · laptop and USB cameras" tag="HTTPS" className="md:w-48">
+            <div className="font-mono text-xs">private-space.hf.space</div>
           </Node>
           <Arrow label="HTTP" />
-          <Group label="this box · RTX PRO 6000 Blackwell · 96 GB" className="flex-1">
+          <Group label="HF CPU Basic · 2 vCPU / 16 GB RAM" className="flex-1">
             <div className="flex flex-col items-stretch lg:flex-row lg:items-center">
-              <Node title="Next.js 16" sub="web/ · pages + proxy" tag=":3000" className="lg:w-52">
+              <Node title="Next.js 16" sub="web/ · pages + proxy" tag=":7860" className="lg:w-52">
                 <div>Library · Search · Ask</div>
                 <div>Experiments · Architecture</div>
                 <div className="text-xs text-muted">rewrites /api, /media → :8000</div>
@@ -144,13 +142,13 @@ export function ArchitectureView() {
               </Node>
               <Arrow />
               <div className="grid flex-1 gap-2">
-                <Node title="EmbeddingGemma 2" sub="in-process · bf16 · ~2.6 GB VRAM" accent="var(--series-1)" tag="740M">
-                  <div className="text-xs">query + corpus embeddings, 768d</div>
+                <Node title="Remote embeddings" sub="approved HTTPS · model-versioned" accent="var(--series-1)" tag="remote">
+                  <div className="text-xs">query + corpus text embeddings</div>
                 </Node>
-                <Node title="Vector index" sub="numpy · brute-force cosine" accent="var(--series-3)" tag={`${EMBED_VIEWS.length}×${seg}×768`}>
-                  <div className="text-xs">data/index/&#123;view&#125;.npy · {bytes(perView768)} per view</div>
+                <Node title="Vector index" sub="numpy · brute-force cosine" accent="var(--series-3)" tag={`${stats?.views.length??0}×${seg}×${stats?.dims[0]??"–"}`}>
+                  <div className="text-xs">data/index/&#123;view&#125;.npy · {bytes(stats?.storage[0]?.bytes_per_view??0)} per view</div>
                 </Node>
-                <Node title="vLLM · Gemma 4 12B" sub="QAT w4a16 + MTP drafter · serve/ venv" accent="var(--series-5)" tag=":8001">
+                <Node title="Remote VLM / LLM" sub="no local weights or DGX dependency" accent="var(--series-5)" tag="HTTPS">
                   <div className="text-xs">answers · transcription · eval queries</div>
                 </Node>
               </div>
@@ -163,36 +161,36 @@ export function ArchitectureView() {
       <Section
         n={2}
         title="Build pipeline"
-        blurb="uv run vrag build. Each stage is idempotent and writes plain files under data/, so any step can be re-run on its own."
+        blurb="Browser import creates a persisted job. One bounded CPU worker prepares media; remote transcription/embedding failures are visible and retryable."
       >
         <div className="flex flex-col items-stretch xl:flex-row xl:items-stretch">
-          <Node title="Source files" sub="sams-videos/*.mp4" tag="input" className="xl:w-44">
-            <div>{vids} creator exports</div>
-            <div className="text-xs text-muted">1080p60, ~1 GB each</div>
+          <Node title="Source files" sub="Browser upload" tag="input" className="xl:w-44">
+            <div>{vids} library videos</div>
+            <div className="text-xs text-muted">64 MiB / 30 minute limit</div>
           </Node>
           <Arrow />
-          <Node title="ingest" sub="vrag/ingest.py" tag="ffmpeg" className="xl:flex-1">
-            <div>480p NVENC proxy (faststart)</div>
-            <div>match to upload by duration (YouTube rounds up)</div>
+          <Node title="ingest" sub="vrag/jobs.py" tag="ffmpeg" className="xl:flex-1">
+            <div>640px CPU H.264 proxy (faststart)</div>
+            <div>SHA-256 deduplication; resumable job stages</div>
             <div className="text-xs text-muted">→ video.mp4 · thumb.jpg · meta.json</div>
           </Node>
           <Arrow />
-          <Node title="transcribe" sub="vrag/transcribe.py" tag="gemma 4" accent="var(--series-5)" className="xl:flex-1">
-            <div>Gemma 4 12B via vLLM (audio in)</div>
-            <div>cut at pauses into ≤28s chunks, pad to 30s</div>
-            <div className="text-xs text-muted">→ transcript.gemma.json · Whisper kept for comparison</div>
+          <Node title="transcribe" sub="vrag/jobs.py → remote STT" tag="remote STT" accent="var(--series-5)" className="xl:flex-1">
+            <div>Whisper-compatible remote endpoint</div>
+            <div>bounded 30s audio chunks</div>
+            <div className="text-xs text-muted">→ transcript.json · manual transcript retry supported</div>
           </Node>
           <Arrow />
-          <Node title="segment" sub="vrag/segment.py" tag="~30s" className="xl:flex-1">
+          <Node title="segment" sub="vrag/jobs.py → CPU keyframes" tag="~30s" className="xl:flex-1">
             <div>pack cues into ~30s windows</div>
-            <div>never cut mid-sentence</div>
-            <div className="text-xs text-muted">→ NNN.mp4 · NNN.wav · NNN.jpg</div>
+            <div>preserve chunk timestamps; cue overlap is explicit</div>
+            <div className="text-xs text-muted">→ timestamped metadata and keyframe JPEGs</div>
           </Node>
           <Arrow />
-          <Node title="embed" sub="vrag/embed.py" tag="5 views" className="xl:flex-1">
-            <div>{seg} segments × 5 views</div>
-            <div>bf16, unit-norm, 768d</div>
-            <div className="text-xs text-muted">→ &#123;view&#125;.npy · manifest.json</div>
+          <Node title="Remote text index" sub="vrag/jobs.py" tag="text only" className="xl:flex-1">
+            <div>{seg} transcript segments</div>
+            <div>validated dimension · normalized float32</div>
+            <div className="text-xs text-muted">→ revision/text.npy · atomic CURRENT</div>
           </Node>
         </div>
       </Section>
@@ -200,13 +198,13 @@ export function ArchitectureView() {
       {/* 3. Embedding views */}
       <Section
         n={3}
-        title="One segment, five embeddings"
-        blurb="Every segment's media goes through EmbeddingGemma 2 five different ways into the same 768d space, so one text query can be compared against any of them. Hybrid adds a sixth retrieval mode by fusing rankings instead of vectors."
+        title="Historical research · five embedding views"
+        blurb="Historical multimodal design: only valid for a verified shared embedding space. Current remote text adapters cannot reproduce these views. The UI enables only actually loaded indexes."
       >
         <div className="grid gap-4 lg:grid-cols-[260px_auto_1fr] lg:gap-0">
           <Node title="Segment 2RA7jWJvQ1U_006" sub="Which is The Best Qwen3.8-27B? · 3:20–3:57">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/media/2RA7jWJvQ1U/segments/006.jpg" alt="" className="mt-1 aspect-video w-full rounded-md bg-black object-cover" />
+            <img src="/sample/thumb-1.jpg" alt="" className="mt-1 aspect-video w-full rounded-md bg-black object-cover" />
             <div className="grid grid-cols-3 gap-1 pt-1 text-center text-[11px]">
               <span className="rounded bg-surface-2 py-0.5">transcript</span>
               <span className="rounded bg-surface-2 py-0.5">frames</span>
@@ -264,33 +262,33 @@ export function ArchitectureView() {
       <Section
         n={4}
         title="Query → answer"
-        blurb="Search stops after step 4. Ask continues: the retrieved clips themselves (not just their text) go to Gemma 4, which answers with citations the UI turns into playable clips."
+        blurb="Search retrieves timestamped transcript evidence. Ask sends transcripts and optional bounded keyframes to a configured remote model; citations open playable clips."
       >
         <div className="flex flex-col items-stretch xl:flex-row xl:items-stretch">
           <Node title="1 · Question" sub="text, or an image for screenshot search" className="xl:flex-1">
             <div className="text-xs">“what did Sam think about 3-bit models for coding?”</div>
           </Node>
           <Arrow />
-          <Node title="2 · Embed query" sub="EmbeddingGemma 2" accent="var(--series-1)" tag={exp ? `${exp.query_embed_ms.toFixed(0)} ms` : undefined} className="xl:flex-1">
+          <Node title="2 · Embed query" sub="configured remote text model" accent="var(--series-1)" tag={exp ? `${exp.query_embed_ms.toFixed(0)} ms` : undefined} className="xl:flex-1">
             <div>
-              prefix <Code>task: search result | query:</Code>
+              <Code>model-specific input preparation</Code>
             </div>
-            <div className="text-xs text-muted">→ 768d unit vector</div>
+            <div className="text-xs text-muted">→ model dimension, normalized vector</div>
           </Node>
           <Arrow />
-          <Node title="3 · Truncate" sub="Matryoshka" tag="768/512/256/128" className="xl:flex-1">
-            <div>keep first d dims of query and corpus</div>
+          <Node title="3 · Validate dimension" sub="MRL only when declared" tag="versioned" className="xl:flex-1">
+            <div>match model, view and index dimensions</div>
             <div>re-normalise both</div>
           </Node>
           <Arrow />
-          <Node title="4 · Cosine top-k" sub="matmul over one view" accent="var(--series-3)" tag="<1 ms" className="xl:flex-1">
+          <Node title="4 · Cosine top-k" sub="matmul over one view" accent="var(--series-3)" tag="NumPy" className="xl:flex-1">
             <div>{seg} scores per query</div>
             <div className="text-xs text-muted">hybrid: RRF over 3 rankings</div>
           </Node>
           <Arrow />
-          <Node title="5 · Gemma 4 watches" sub="vLLM, k clips" accent="var(--series-5)" tag="~4–5 s" className="xl:flex-1">
+          <Node title="5 · Remote model answers" sub="transcripts + optional keyframes" accent="var(--series-5)" tag="provider latency" className="xl:flex-1">
             <div>per clip: transcript + frames</div>
-            <div className="text-xs text-muted">(+ audio optional) · ~10k prompt tokens</div>
+            <div className="text-xs text-muted">raw audio reasoning unavailable; transcribe first</div>
           </Node>
           <Arrow />
           <Node title="6 · Cited answer" sub="markdown + [n]" className="xl:flex-1">
@@ -304,7 +302,7 @@ export function ArchitectureView() {
       <Section
         n={5}
         title="Matryoshka truncation"
-        blurb="Only 768d vectors are stored. Smaller sizes are prefixes of the same vector, so every dim can be compared on identical data with no re-embedding."
+        blurb="Historical MRL illustration. Truncation is enabled only when the model/index manifest explicitly declares supported dimensions. Remote text defaults use their full dimension."
       >
         <div className="space-y-2 rounded-xl border border-line bg-surface p-5">
           {[768, 512, 256, 128].map((d) => (
@@ -329,7 +327,7 @@ export function ArchitectureView() {
       <Section
         n={6}
         title="Evaluation loop"
-        blurb="Gemma 4 doubles as the benchmark author: it watches sampled segments and writes queries, so every query has a known source segment to score against."
+        blurb="Historical evaluation workflow. Preserve model labels and source provenance; synthetic sample scores demonstrate UI only and are not measured quality."
       >
         <div className="flex flex-col items-stretch lg:flex-row lg:items-stretch">
           <Node title="Sample segments" sub="vrag/evalset.py" className="lg:flex-1">
@@ -371,19 +369,19 @@ export function ArchitectureView() {
             </table>
           </div>
           <pre className="overflow-x-auto rounded-xl border border-line bg-surface p-5 font-mono text-xs leading-relaxed text-ink-2">{`vrag/            pipeline + API
-  ingest.py      sams-videos → 480p proxy + meta
-  transcribe.py  Gemma 4 / Whisper → transcripts
-  segment.py     ~30s windows + clip/wav/jpg
-  embedder.py    EmbeddingGemma 2 + view inputs
-  embed.py       → data/index/{view}.npy
+  jobs.py        bounded upload → CPU proxy → remote STT → index
+  providers.py   remote vision / detection / STT / embeddings
+  mentor_api.py  live sessions, consent and authorized routing
+  settings.py    atomic profile history and rollback
+  backup/        encrypted snapshots and isolated restore
   index.py       cosine, MRL truncate, RRF
-  rag.py         retrieve → Gemma 4 → answer
+  remote.py      evidence → remote LLM → cited answer
   evalset.py     synthetic spoken/visual queries
   experiments.py view × dim metrics grid
   api.py         FastAPI for the site
-serve/           vLLM env + serve.sh / stop.sh
+serve/           historical offline research; not cloud runtime
 web/             this site
-scripts/dev.sh   start everything`}</pre>
+scripts/dev.sh   CPU web + API only; no inference services`}</pre>
         </div>
       </Section>
     </div>

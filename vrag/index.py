@@ -18,14 +18,35 @@ RRF_K = 60
 def truncate(x: np.ndarray, dim: int) -> np.ndarray:
     """MRL truncation. Re-normalising is required: a sliced unit vector is no longer unit length."""
     x = x[..., :dim]
-    return x / np.linalg.norm(x, axis=-1, keepdims=True)
+    return x / np.maximum(np.linalg.norm(x, axis=-1, keepdims=True), 1e-12)
 
 
 class Index:
     def __init__(self):
-        self.segments: list[dict] = json.loads((INDEX_DIR / "segments.json").read_text())
+        base = INDEX_DIR
+        pointer = base / 'CURRENT'
+        if pointer.exists():
+            revision = pointer.read_text().strip()
+            if len(revision)!=32 or not all(c in '0123456789abcdef' for c in revision):raise ValueError('invalid index revision')
+            base = base / 'revisions' / revision
+        self.path = base
+        self.segments: list[dict] = json.loads((base / "segments.json").read_text()) if (base / "segments.json").exists() else []
+        manifest_path = base / 'manifest.json'
+        manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
+        self.dims = manifest.get('mrl_dims', [manifest['dimension']]) if 'dimension' in manifest else DIMS
         self.by_id = {s["id"]: i for i, s in enumerate(self.segments)}
-        self.views = {v: np.load(INDEX_DIR / f"{v}.npy") for v in VIEWS if (INDEX_DIR / f"{v}.npy").exists()}
+        self.views = {v: np.load(base / f"{v}.npy", mmap_mode="r", allow_pickle=False) for v in VIEWS if (base / f"{v}.npy").exists()}
+        for matrix in self.views.values():
+            if (matrix.ndim != 2 or matrix.shape[0] != len(self.segments)
+                or matrix.dtype.kind != 'f' or matrix.nbytes > 512 * 1024 * 1024
+                or not 1 <= matrix.shape[1] <= 16384
+                or ('dimension' in manifest and matrix.shape[1] != manifest['dimension'])
+                or any(d < 1 or d > matrix.shape[1] for d in self.dims)):
+                raise ValueError('invalid_index_shape_or_dimensions')
+            for offset in range(0, len(matrix), 1024):
+                block=matrix[offset:offset+1024]
+                if not np.isfinite(block).all() or (np.linalg.norm(block,axis=1)==0).any():
+                    raise ValueError('invalid_index_vectors')
         self._trunc = {}
 
     @property
@@ -74,7 +95,11 @@ class Index:
 
 @lru_cache(maxsize=1)
 def get_index() -> Index:
-    return Index()
+    try:
+        return Index()
+    except (ValueError, OSError, KeyError, TypeError):
+        from .providers import ProviderFailure
+        raise ProviderFailure('index_invalid_or_incompatible') from None
 
 
 __all__ = ["Index", "get_index", "truncate", "DIMS"]

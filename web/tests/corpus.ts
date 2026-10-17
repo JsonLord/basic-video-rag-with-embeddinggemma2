@@ -1,6 +1,165 @@
-import { Page } from '@playwright/test';
-export const videos = ['Workshop safety: prepare the bench','Camera framing and lighting','Find evidence in video'].map((title,i)=>({id:`sample-${i+1}`,title,duration:60,source_file:'Synthetic evaluation corpus',youtube_id:null,webpage_url:null,view_count:null,channel_position:i,num_segments:2,thumb:`/sample/thumb-${i+1}.jpg`,video:'/sample/video.mp4',transcript_source:'sample',transcript_engine:'sample'}));
-export const hits=videos.flatMap(v=>[0,1].map(idx=>({id:`${v.id}_${idx.toString().padStart(3,'0')}`,video_id:v.id,title:v.title,idx,start:idx*30,end:(idx+1)*30,text:idx?'Check the camera lighting and keep hands visible.':'Clear the workbench and check equipment before starting.',frame:v.thumb,score:0.91,rank:idx+1})));
-export const answer={question:'How should I prepare?',answer:'Clear the workbench and check equipment before starting. [1]',settings:{view:'text',dim:768,k:4,use_video:false,use_audio:false},clips:hits.slice(0,2),usage:{prompt_tokens:0,completion_tokens:0},timing:{retrieve_s:0.01,generate_s:0},created_at:'2026-10-16T12:00:00Z'};
-export const stats={model:'Sample fixture · no live inference',segments:6,videos:3,dims:[768,512,256,128],views:['text','frame','video','audio','fused'],view_descriptions:{text:'Transcript',frame:'Keyframe',video:'Frames',audio:'Audio',fused:'Combined'},storage:[768,512,256,128].map(dim=>({dim,bytes_per_view:6*4*dim})),total_duration_s:180,views_built:{text:{seconds:1,ms_per_segment:1,count:6}}};
-export async function corpus(page:Page){await page.route('**/api/**',async route=>{const u=new URL(route.request().url());const p=u.pathname;let body:unknown={};if(p==='/api/videos')body=videos;else if(p.startsWith('/api/videos/')){const v=videos.find(v=>p.endsWith(v.id))||videos[0];body={...v,segments:hits.filter(h=>h.video_id===v.id),transcript:hits.filter(h=>h.video_id===v.id),transcripts:{}};}else if(p==='/api/stats')body=stats;else if(p==='/api/answers')body=[answer];else if(p==='/api/ask')body=answer;else if(p==='/api/search')body={query:u.searchParams.get('q'),view:u.searchParams.get('view')||'text',dim:768,hits,timing:{embed_ms:1,search_ms:1}};else if(p==='/api/compare')body={query:'bench',view:'text',k:6,columns:stats.dims.map(dim=>({dim,hits,overlap_with_768:1,top1_matches_768:true,bytes_per_view:1000}))};else if(p==='/api/compare-views')body={query:'bench',dim:768,k:5,columns:stats.views.map(view=>({view,hits}))};else if(p==='/api/experiments')body={created_at:answer.created_at,model:stats.model,num_segments:6,num_queries:1,query_types:{spoken:1,visual:0},query_embed_ms:1,dims:stats.dims,views:stats.views,storage:stats.storage.map(s=>({...s,bytes_per_vector:4*s.dim,bytes_all_views:s.bytes_per_view*5})),grid:stats.views.flatMap(view=>stats.dims.map(dim=>({view,dim,query_type:'all','recall@1':1,'recall@5':1,'recall@10':1,'mrr@10':1,'neighbor_recall@5':1,'video_hit@1':1,n:1,search_ms:1}))),per_query:[{query:'Prepare the bench',type:'spoken',segment_id:hits[0].id,video_id:videos[0].id,source:'sample fixture',ranks:{'text:768':1},segment:hits[0]}]};else {await route.fallback();return;}await route.fulfill({json:body});});}
+import { Page } from "@playwright/test";
+export const videos = [
+  "Workshop safety: prepare the bench",
+  "Camera framing and lighting",
+  "Find evidence in video",
+].map((title, i) => ({
+  id: `sample-${i + 1}`,
+  title,
+  duration: 60,
+  source_file: "Synthetic evaluation corpus",
+  youtube_id: null,
+  webpage_url: null,
+  view_count: null,
+  channel_position: i,
+  num_segments: 2,
+  thumb: `/sample/thumb-${i + 1}.jpg`,
+  video: "/sample/video.mp4",
+  transcript_source: "sample",
+  transcript_engine: "sample",
+}));
+export const hits = videos.flatMap((v) =>
+  [0, 1].map((idx) => ({
+    id: `${v.id}_${idx.toString().padStart(3, "0")}`,
+    video_id: v.id,
+    title: v.title,
+    idx,
+    start: idx * 30,
+    end: (idx + 1) * 30,
+    text: idx
+      ? "Check the camera lighting and keep hands visible."
+      : "Clear the workbench and check equipment before starting.",
+    frame: v.thumb,
+    score: 0.91,
+    rank: idx + 1,
+  })),
+);
+export const answer = {
+  question: "How should I prepare?",
+  answer: "Clear the workbench and check equipment before starting. [1]",
+  settings: {
+    view: "text",
+    dim: 768,
+    k: 4,
+    use_video: false,
+    use_audio: false,
+  },
+  clips: hits.slice(0, 2),
+  usage: { prompt_tokens: 0, completion_tokens: 0 },
+  timing: { retrieve_s: 0.01, generate_s: 0 },
+  created_at: "2026-10-16T12:00:00Z",
+};
+export const stats = {
+  model: "Sample fixture · no live inference",
+  segments: 6,
+  videos: 3,
+  dims: [768, 512, 256, 128],
+  views: ["text", "frame", "video", "audio", "fused"],
+  view_descriptions: {
+    text: "Transcript",
+    frame: "Keyframe",
+    video: "Frames",
+    audio: "Audio",
+    fused: "Combined",
+  },
+  storage: [768, 512, 256, 128].map((dim) => ({
+    dim,
+    bytes_per_view: 6 * 4 * dim,
+  })),
+  total_duration_s: 180,
+  views_built: { text: { seconds: 1, ms_per_segment: 1, count: 6 } },
+};
+export async function corpus(page: Page) {
+  await page.route("**/api/**", async (route) => {
+    const u = new URL(route.request().url());
+    const p = u.pathname.replace("/api/demo/", "/api/");
+    let body: unknown = {};
+    if (p === "/api/videos") body = videos;
+    else if (p.startsWith("/api/videos/")) {
+      const v = videos.find((v) => p.endsWith(v.id)) || videos[0];
+      body = {
+        ...v,
+        segments: hits.filter((h) => h.video_id === v.id),
+        transcript: hits.filter((h) => h.video_id === v.id),
+        transcripts: {},
+      };
+    } else if (p === "/api/stats") body = stats;
+    else if (p === "/api/answers") body = [answer];
+    else if (p === "/api/ask") body = answer;
+    else if (p === "/api/search")
+      body = {
+        query: u.searchParams.get("q"),
+        view: u.searchParams.get("view") || "text",
+        dim: 768,
+        hits,
+        timing: { embed_ms: 1, search_ms: 1 },
+      };
+    else if (p === "/api/compare")
+      body = {
+        query: "bench",
+        view: "text",
+        k: 6,
+        columns: stats.dims.map((dim) => ({
+          dim,
+          hits,
+          overlap_with_768: 1,
+          top1_matches_768: true,
+          bytes_per_view: 1000,
+        })),
+      };
+    else if (p === "/api/compare-views")
+      body = {
+        query: "bench",
+        dim: 768,
+        k: 5,
+        columns: stats.views.map((view) => ({ view, hits })),
+      };
+    else if (p === "/api/experiments")
+      body = {
+        created_at: answer.created_at,
+        model: stats.model,
+        num_segments: 6,
+        num_queries: 1,
+        query_types: { spoken: 1, visual: 0 },
+        query_embed_ms: 1,
+        dims: stats.dims,
+        views: stats.views,
+        storage: stats.storage.map((s) => ({
+          ...s,
+          bytes_per_vector: 4 * s.dim,
+          bytes_all_views: s.bytes_per_view * 5,
+        })),
+        grid: stats.views.flatMap((view) =>
+          stats.dims.map((dim) => ({
+            view,
+            dim,
+            query_type: "all",
+            "recall@1": 1,
+            "recall@5": 1,
+            "recall@10": 1,
+            "mrr@10": 1,
+            "neighbor_recall@5": 1,
+            "video_hit@1": 1,
+            n: 1,
+            search_ms: 1,
+          })),
+        ),
+        per_query: [
+          {
+            query: "Prepare the bench",
+            type: "spoken",
+            segment_id: hits[0].id,
+            video_id: videos[0].id,
+            source: "sample fixture",
+            ranks: { "text@768": 1 },
+            segment: hits[0],
+          },
+        ],
+      };
+    else {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({ json: body });
+  });
+}

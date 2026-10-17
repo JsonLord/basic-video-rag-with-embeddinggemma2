@@ -1,0 +1,22 @@
+version: 1
+profile: laya-pending-protocol
+providers:
+  laya:
+    label: Needle router / Laya
+    adapter: laya-vision
+    base_url_env: LAYA_BASE_URL
+    api_key_secret: LAYA_API_KEY
+    model: pending-v1-info-verification
+    capabilities: []
+    trust: approved_sensitive
+features:
+  live.camera1.scene:
+    strategy: single
+    providers:
+    - laya
+    enabled: false
+  live.camera2.scene:
+    strategy: single
+    providers:
+    - laya
+    enabled: false

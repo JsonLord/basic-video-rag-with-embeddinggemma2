@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import {getJSON, type Stats} from "@/lib/api";
 import { DIMS, type View } from "@/lib/api";
 import { VIEW_INFO, VIEW_ORDER } from "@/lib/views";
 
@@ -21,7 +23,7 @@ export function Segmented<T extends string | number>({
   return (
     <div className="flex items-center gap-2">
       {label && <span className="text-xs text-muted">{label}</span>}
-      <div role="radiogroup" aria-label={ariaLabel ?? label} className="flex rounded-lg border border-line bg-surface p-0.5">
+      <div role="radiogroup" aria-label={ariaLabel ?? label} className="flex flex-wrap rounded-lg border border-line bg-surface p-0.5">
         {options.map((o) => (
           <button
             key={String(o)}
@@ -45,11 +47,16 @@ export function ViewSwatch({ view }: { view: View }) {
 }
 
 export function ViewPicker({ value, onChange, views = VIEW_ORDER }: { value: View; onChange: (v: View) => void; views?: View[] }) {
+  const [available,setAvailable]=useState<View[]>(views);
+  useEffect(()=>{void getJSON<Stats>("/api/stats").then(s=>{setAvailable(s.views);if(s.views.length&&!s.views.includes(value))onChange(s.views[0]);}).catch(()=>{});
+  // Initial capabilities are a server snapshot; manual selection remains local.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
   return (
     <Segmented
       label="View"
       value={value}
-      options={views}
+      options={available.filter(v=>views.includes(v))}
       onChange={onChange}
       render={(v) => (
         <span className="flex items-center gap-1.5" title={VIEW_INFO[v].blurb}>
@@ -62,5 +69,9 @@ export function ViewPicker({ value, onChange, views = VIEW_ORDER }: { value: Vie
 }
 
 export function DimPicker({ value, onChange }: { value: number; onChange: (d: number) => void }) {
-  return <Segmented label="Dims" value={value} options={DIMS as readonly number[]} onChange={onChange} render={(d) => `${d}d`} />;
+  const [dims,setDims]=useState<readonly number[]>(DIMS);
+  useEffect(()=>{void getJSON<Stats>("/api/stats").then(s=>{setDims(s.dims);if(s.dims.length&&!s.dims.includes(value))onChange(s.dims[0]);}).catch(()=>{});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+  return <Segmented label="Dims" value={value} options={dims} onChange={onChange} render={(d) => `${d}d`} />;
 }

@@ -1,16 +1,12 @@
 #!/usr/bin/env bash
-# Start everything for local use: vLLM (Gemma 4 12B, :8001), FastAPI (:8000), Next.js (:3000).
-# Ctrl-C stops the API and web server; vLLM keeps running (stop with serve/stop.sh).
+# Remote-only development. Does not start any inference services.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-
-if ! curl -sf http://127.0.0.1:8001/v1/models >/dev/null; then
-  serve/serve.sh --bg --mtp
-  echo "==> waiting for vLLM (first start takes a few minutes)..."
-  until curl -sf http://127.0.0.1:8001/v1/models >/dev/null; do sleep 5; done
-fi
-
-trap 'kill 0' EXIT
-uv run vrag api &
-(cd web && npm run dev) &
-wait
+children=()
+cleanup() { for child in "${children[@]}"; do kill "$child" 2>/dev/null || true; done; }
+trap cleanup EXIT INT TERM
+"${PYTHON:-python}" -m uvicorn vrag.api:app --host 127.0.0.1 --port 8000 &
+children+=("$!")
+npm --prefix web run dev -- --hostname 0.0.0.0 --port 7860 &
+children+=("$!")
+wait -n "${children[@]}"

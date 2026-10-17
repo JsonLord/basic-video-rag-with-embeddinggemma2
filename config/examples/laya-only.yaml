@@ -1,0 +1,30 @@
+version: 1
+profile: laya-only
+providers:
+  laya:
+    label: Needle Router Laya Vision
+    adapter: laya-vision
+    base_url_env: LAYA_BASE_URL
+    model: thaitea/laya-vision
+    capabilities:
+    - image_understanding
+    - visual_decision
+    trust: approved_sensitive
+    timeout_ms: 60000
+    concurrency: 1
+features:
+  live.camera1.scene:
+    strategy: single
+    providers:
+    - laya
+    enabled: false
+  live.camera2.scene:
+    strategy: single
+    providers:
+    - laya
+    enabled: false
+  live.visual_decision:
+    strategy: single
+    providers:
+    - laya
+    enabled: false

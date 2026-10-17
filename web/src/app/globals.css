@@ -34,7 +34,7 @@
   --color-line: var(--border);
   --color-accent: var(--accent);
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: var(--font-geist-mono);
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
 }
 
 body {
@@ -53,3 +53,8 @@ body {
 .prose-answer li { margin: 0.25rem 0; }
 .prose-answer strong { color: var(--text-primary); }
 .prose-answer code { font-family: var(--font-mono); font-size: 0.85em; background: var(--surface-2); padding: 0.1rem 0.3rem; border-radius: 4px; }
+
+button:not(:disabled), summary { cursor: pointer; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+input, select, textarea { max-width: 100%; }

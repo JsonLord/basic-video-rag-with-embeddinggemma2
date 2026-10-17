@@ -1,0 +1,23 @@
+version: 1
+profile: detector-only
+providers:
+  detector:
+    adapter: detection-http
+    base_url_env: NVIDIA_DETECTION_BASE_URL
+    api_key_secret: NVIDIA_DETECTION_API_KEY
+    model: replace-with-verified-gateway-model
+    capabilities:
+    - object_detection
+    - bounding_boxes
+    trust: approved_sensitive
+features:
+  live.camera1.detection:
+    strategy: single
+    providers:
+    - detector
+    enabled: false
+  live.camera2.detection:
+    strategy: single
+    providers:
+    - detector
+    enabled: false

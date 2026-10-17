@@ -57,13 +57,13 @@ function Answer({ res, onPlay }: { res: AskResponse; onPlay: (h: Hit) => void })
             {VIEW_INFO[res.settings.view].label} @ {res.settings.dim}d · k={res.settings.k}
           </span>
           <span>
-            inputs: transcript{res.settings.use_video ? " + video" : ""}
+            inputs: transcript{res.settings.use_video ? " + keyframes" : ""}
             {res.settings.use_audio ? " + audio" : ""}
           </span>
           <span>retrieve {(res.timing.retrieve_s * 1000).toFixed(0)} ms</span>
           <span>generate {res.timing.generate_s.toFixed(1)} s</span>
           <span>
-            {res.usage.prompt_tokens.toLocaleString()} prompt → {res.usage.completion_tokens.toLocaleString()} output tokens
+            {res.usage_available===false?"Usage unavailable":`${res.usage.prompt_tokens.toLocaleString()} prompt → ${res.usage.completion_tokens.toLocaleString()} output tokens`}
           </span>
         </div>
       </div>
@@ -78,7 +78,7 @@ function Answer({ res, onPlay }: { res: AskResponse; onPlay: (h: Hit) => void })
 
 export function AskView() {
   const [question, setQuestion] = useState("");
-  const [view, setView] = useState<View>("fused");
+  const [view, setView] = useState<View>("text");
   const [dim, setDim] = useState(768);
   const [k, setK] = useState(4);
   const [useVideo, setUseVideo] = useState(true);
@@ -118,8 +118,7 @@ export function AskView() {
         <section>
           <h1 className="text-2xl font-semibold">Ask</h1>
           <p className="mt-1 max-w-3xl text-sm text-ink-2">
-            EmbeddingGemma 2 retrieves the top-k segments; Gemma 4 12B then reads each transcript and <em>watches</em> the clip
-            (sampled frames, optionally the raw audio) before answering with citations.
+            Retrieve relevant transcripts and ask a configured remote model for cited answers, with optional keyframes. Sample mode returns labeled evidence extracts without inference.
           </p>
         </section>
 
@@ -148,10 +147,10 @@ export function AskView() {
             <DimPicker value={dim} onChange={setDim} />
             <Segmented label="k" value={k} options={[2, 4, 6] as const} onChange={setK} />
             <label className="flex items-center gap-1.5 text-sm text-ink-2">
-              <input type="checkbox" checked={useVideo} onChange={(e) => setUseVideo(e.target.checked)} /> send video
+              <input type="checkbox" checked={useVideo} onChange={(e) => setUseVideo(e.target.checked)} /> send keyframes
             </label>
             <label className="flex items-center gap-1.5 text-sm text-ink-2">
-              <input type="checkbox" checked={useAudio} onChange={(e) => setUseAudio(e.target.checked)} /> send audio
+              <input type="checkbox" disabled title="Raw audio requires a verified multimodal reasoning provider" checked={useAudio} onChange={(e) => setUseAudio(e.target.checked)} /> send audio
             </label>
             <button className="ml-auto rounded-lg bg-accent px-5 py-2 font-medium text-white disabled:opacity-60" disabled={loading}>
               {loading ? "Watching clips…" : "Ask"}

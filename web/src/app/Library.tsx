@@ -1,5 +1,7 @@
 "use client";
 
+import {AccessToken} from "@/components/AccessToken";
+import {ImportMedia} from "@/components/ImportMedia";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getJSON, type Stats, type VideoMeta } from "@/lib/api";
@@ -27,9 +29,10 @@ export function Library() {
     getJSON<Stats>("/api/stats").then(setStats).catch(() => {});
   }, []);
 
-  if (error) return <p className="text-ink-2">Backend unavailable ({error}). Start it with <code>uv run vrag api</code>.</p>;
+  if (error) return <p className="text-ink-2">Library unavailable ({error}). Check access and service status.</p>;
 
-  const s768 = stats?.storage.find((s) => s.dim === 768)?.bytes_per_view ?? 0;
+  const primaryDim = stats?.dims[0] ?? 768;
+  const s768 = stats?.storage.find((s) => s.dim === primaryDim)?.bytes_per_view ?? 0;
   const s128 = stats?.storage.find((s) => s.dim === 128)?.bytes_per_view ?? 0;
 
   return (
@@ -37,17 +40,17 @@ export function Library() {
       <section>
         <h1 className="text-2xl font-semibold">Library</h1>
         <p className="mt-1 max-w-3xl text-sm text-ink-2">
-          The latest uploads, cut into ~30s segments. Every segment is embedded five ways by EmbeddingGemma 2 (transcript, a
-          keyframe, the frames, the raw audio, and all three fused) into one shared 768d space, so a text query can land on any of them.
+          Browse timestamped clips, transcripts and evidence. Remote text indexes search transcripts; image, video and audio views require a compatible multimodal index.
         </p>
       </section>
 
+      <AccessToken/><ImportMedia/>
       {stats && (
         <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <Tile label="Videos" value={String(stats.videos ?? videos?.length ?? "–")} sub={fmtDuration(stats.total_duration_s) + " of footage"} />
           <Tile label="Segments" value={String(stats.segments ?? "–")} sub={`${stats.views.length} retrieval views`} />
           <Tile label="Vectors" value={compact((stats.segments ?? 0) * Object.keys(stats.views_built ?? {}).length)} sub="segments × embedding views" />
-          <Tile label="Index size per view" value={bytes(s768)} sub={`${bytes(s128)} at 128d (MRL)`} />
+          <Tile label="Index size per view" value={bytes(s768)} sub={stats?.dims.includes(128)&&primaryDim!==128?`${bytes(s128)} at 128d (MRL)`:`${primaryDim}d · only declared dimensions`} />
         </section>
       )}
 
@@ -70,6 +73,7 @@ export function Library() {
         </section>
       )}
 
+      {videos?.length===0&&<p className="rounded-xl border border-line bg-surface p-5 text-ink-2">Your library is ready for its first video. Import a clip above; missing inference dependencies appear in its job status.</p>}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {(videos ?? []).map((v) => (
           <Link key={v.id} href={`/videos/${v.id}`} className="group overflow-hidden rounded-xl border border-line bg-surface transition-colors hover:bg-surface-2">
@@ -83,7 +87,7 @@ export function Library() {
               <div className="flex flex-wrap gap-x-3 text-xs text-muted">
                 <span>{v.num_segments} segments</span>
                 {v.view_count != null && <span>{compact(v.view_count)} views</span>}
-                {!v.youtube_id && <span>not matched to an upload</span>}
+                {v.id.startsWith("sample-") && <span className="text-accent">Synthetic sample</span>}
               </div>
             </div>
           </Link>

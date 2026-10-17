@@ -10,10 +10,11 @@ import { SegmentCard } from "@/components/SegmentCard";
 
 export function VideoDetailView() {
   const { id } = useParams<{ id: string }>();
+  const [error,setError]=useState("");
   const [video, setVideo] = useState<VideoDetail | null>(null);
   const [time, setTime] = useState(0);
   const [q, setQ] = useState("");
-  const [view, setView] = useState<View>("fused");
+  const [view, setView] = useState<View>("text");
   const [dim, setDim] = useState(768);
   const [hits, setHits] = useState<Hit[] | null>(null);
   const [engine, setEngine] = useState<string | null>(null);
@@ -21,7 +22,7 @@ export function VideoDetailView() {
   const transcriptBox = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    getJSON<VideoDetail>(`/api/videos/${id}`).then(setVideo);
+    getJSON<VideoDetail>(`/api/videos/${id}`).then(setVideo).catch(e=>setError(String(e)));
   }, [id]);
 
   const seek = (t: number) => {
@@ -55,6 +56,7 @@ export function VideoDetailView() {
     setHits(r.hits);
   };
 
+  if(error)return <p role="alert">{error}</p>;
   if (!video) return <p className="text-sm text-muted">Loading…</p>;
   const yt = youtubeAt(video.webpage_url, time);
 

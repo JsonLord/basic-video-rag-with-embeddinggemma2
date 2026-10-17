@@ -21,3 +21,9 @@ web/.next/
 web/test-results/
 web/playwright-report/
 test-results/
+*.age
+*.agekey
+*.key
+rclone.conf
+backups/
+snapshots/

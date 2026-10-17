@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(os.environ.get("VRAG_DATA", ROOT / "data"))
 VIDEOS_DIR = DATA / "videos"
-INDEX_DIR = DATA / "index"
+INDEX_DIR = Path(os.environ.get("VRAG_INDEX_DIR", DATA / "index"))
 EVAL_DIR = DATA / "eval"
 EXPERIMENTS_DIR = DATA / "experiments"
 

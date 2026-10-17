@@ -83,10 +83,7 @@ export function ExperimentsView() {
       <section>
         <h1 className="text-2xl font-semibold">Experiments</h1>
         <p className="mt-1 max-w-3xl text-sm text-ink-2">
-          {data.num_queries} queries ({data.query_types.spoken} spoken, {data.query_types.visual} visual) written by Gemma 4 12B after
-          watching sampled segments, each with one known source segment, run against {data.num_segments} segments for every embedding
-          view and Matryoshka dimension, with {data.transcripts === "whisper" ? "Whisper" : data.transcripts === "gemma" ? "Gemma 4" : "unlabelled"}{" "}
-          transcripts behind the text and fused views. Run {new Date(data.created_at).toLocaleString()}.
+          {data.model} · {data.num_queries} queries across {data.num_segments} segments. Historical results retain their original model labels. Synthetic fixtures illustrate the interface and are not measured retrieval quality. Run {new Date(data.created_at).toLocaleString()}.
         </p>
       </section>
 

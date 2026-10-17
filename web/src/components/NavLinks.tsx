@@ -7,14 +7,16 @@ const LINKS = [
   { href: "/", label: "Library" },
   { href: "/search", label: "Search" },
   { href: "/ask", label: "Ask" },
+  { href: "/live", label: "Live" },
   { href: "/experiments", label: "Experiments" },
   { href: "/architecture", label: "Architecture" },
+  { href: "/models", label: "Models & Routing" },
 ];
 
 /** The links with the current page highlighted; `path` null renders them all inactive. */
 export function NavLinksView({ path }: { path: string | null }) {
   return (
-    <nav className="flex gap-1">
+    <nav className="flex flex-wrap gap-1">
       {LINKS.map((l) => {
         const active =
           path != null && (l.href === "/" ? path === "/" || path.startsWith("/videos") : path.startsWith(l.href));

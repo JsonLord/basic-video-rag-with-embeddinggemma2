@@ -1,0 +1,42 @@
+version: 1
+profile: laya-vlm-fallback
+providers:
+  laya:
+    label: Needle Router Laya Vision
+    adapter: laya-vision
+    base_url_env: LAYA_BASE_URL
+    model: thaitea/laya-vision
+    capabilities:
+    - image_understanding
+    - visual_decision
+    trust: approved_sensitive
+    timeout_ms: 60000
+    concurrency: 1
+  detector:
+    adapter: detection-http
+    base_url_env: NVIDIA_DETECTION_BASE_URL
+    api_key_secret: NVIDIA_DETECTION_API_KEY
+    model: replace-with-verified-gateway-model
+    capabilities:
+    - object_detection
+    - bounding_boxes
+    trust: approved_sensitive
+  vlm:
+    adapter: openai-chat-vision
+    base_url_env: VLM_BASE_URL
+    api_key_secret: VLM_API_KEY
+    model: replace-with-verified-model-id
+    capabilities:
+    - image_understanding
+    - reasoning
+    - visual_decision
+    trust: approved_sensitive
+    timeout_ms: 10000
+    concurrency: 2
+features:
+  live.camera1.scene:
+    strategy: fallback
+    providers:
+    - laya
+    - vlm
+    enabled: false

@@ -86,6 +86,7 @@ export interface CompareViewsResponse {
 }
 
 export interface AskResponse {
+  usage_available?: boolean;
   question: string;
   answer: string;
   settings: { view: View; dim: number; k: number; use_video: boolean; use_audio: boolean };
@@ -137,7 +138,9 @@ export interface Experiments {
 }
 
 export async function getJSON<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, init);
+  const sampleRoutes = /^\/api\/(videos(?:\/sample-\d+)?|stats|search|ask|answers|compare|compare-views|experiments)(?:\?|$)/;
+  if (typeof window !== "undefined" && !sessionStorage.getItem("vm-user-token") && sampleRoutes.test(path)) path=path.replace("/api/","/api/demo/");
+  const res = await fetch(path, {...init, headers:{...init?.headers, ...(typeof window !== "undefined" && sessionStorage.getItem("vm-user-token") ? {Authorization:`Bearer ${sessionStorage.getItem("vm-user-token")}`} : {})}});
   if (!res.ok) {
     let detail = res.statusText;
     try {
