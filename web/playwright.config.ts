@@ -1,0 +1,2 @@
+import { defineConfig } from '@playwright/test';
+export default defineConfig({testDir:'./tests',workers:1,use:{baseURL:'http://127.0.0.1:7860',launchOptions:{executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']}},webServer:{command:'npm run dev -- --hostname 127.0.0.1 --port 7860',url:'http://127.0.0.1:7860',reuseExistingServer:true,timeout:120000,stdout:'ignore',stderr:'ignore'},expect:{toHaveScreenshot:{maxDiffPixelRatio:0.01}}});

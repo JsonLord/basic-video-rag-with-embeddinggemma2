@@ -1,0 +1,17 @@
+
+Running 5 tests using 1 worker
+
+(node:19395) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/parity.spec.ts:4:30 › original UI desktop (5.5s)
+  ✓  2 tests/parity.spec.ts:4:30 › original UI laptop (4.3s)
+  ✓  3 tests/parity.spec.ts:4:30 › original UI tablet (6.9s)
+  ✓  4 tests/parity.spec.ts:4:30 › original UI mobile (6.6s)
+  ✓  5 tests/parity.spec.ts:5:5 › clip and citation interactions (1.4s)
+
+  5 passed (27.7s)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

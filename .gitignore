@@ -18,3 +18,6 @@ web/.next/
 .env
 .env.*
 *.pem
+web/test-results/
+web/playwright-report/
+test-results/

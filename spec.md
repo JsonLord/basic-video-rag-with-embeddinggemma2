@@ -1,131 +1,194 @@
-# Visual Mentor — Private Hugging Face CPU Space
+# Visual Mentor v2 — Video RAG–First Product Specification
 
-**Status:** Implementation specification (v1)  
-**Target repository:** `JsonLord/basic-video-rag-with-embeddinggemma2`  
-**Deployment:** Private Hugging Face Docker Space, port `7860`, CPU-only  
-**Principle:** Preserve existing Video RAG functionality; add live dual-camera mentoring and configurable remote inference. No AI weights loaded in the Space or laptop.
+**Status:** proposed replacement specification (2026-10-16)  
+**Repository:** https://github.com/JsonLord/basic-video-rag-with-embeddinggemma2  
+**Recommended development branch:** `feature/video-rag-mentor-v2`, newly branched from `main` (`7f8922cad8adb7e73a5f95ecfbf5b1a73e5bd46f` at review time; verify current remote HEAD before branching).  
+**Reuse source:** `feature/visual-mentor` at `245b686c916f0fcb0aff50b305e27f399c32910d`.  
+**Deployment target:** existing `Leon4gr45/openweb` Hugging Face Docker Space, **private**, subject to explicit deployment approval. **Do not overwrite** this deployment until a UI parity review and staging approval.
 
-## 1. Goals and non-goals
+## 0. Direction reset / decisive product rule
 
-### Goals
-1. Retain the existing Next.js video library, clip player, search, Ask/RAG, and experiments functionality.
-2. Deploy a **single private Docker Space** serving the UI and FastAPI under one HTTPS origin, listening on port 7860.
-3. Run on CPU Basic with no CUDA, torch, transformers, sentence-transformers, local vLLM, or local Whisper in the production image. Target idle RSS under 500 MB and peak under 1 GB if feasible; measure and report rather than masking failures.
-4. Add a **Live** tab that lets the user's laptop browser select its built-in camera and an attached USB camera, preview both simultaneously when supported, and send explicitly enabled, sampled frames for remote inference. The Space never accesses USB devices directly.
-5. Add **Models & Routing** tab for provider configuration, model-to-feature assignment, YAML import/export, safe validation, test calls, and runtime profile switching.
-6. Support Laya/Jev as a fast visual decision provider, external object detector/tracker (e.g. NVIDIA-compatible service), remote vision-language models, remote Whisper transcription, and remote embedding APIs. Models are **remote inference only**.
-7. Support single, fallback, parallel, sequential, and conditional routing; support typed fusion of detection boxes and semantic descriptions. Never invent spatial detections from textual LLM responses.
-8. Preserve private camera data by default: explicit capture start, no automatic recording, approved inference destinations only, no secret exposure.
+This project is **the original Video RAG app, enhanced with Live Visual Mentor**, not a new lightweight mentor dashboard. The UI/UX design authority is the original `main` branch's `web/` application. Preserve and improve the established dark palette, page widths, typography, navigation, cards, charts, source citations, clip playback, retrieval controls and information density. New features must look and behave like native extensions of that site. Do **not** replace it with generic forms, a blank dashboard, a Gradio UI or a route-only API shell.
 
-### Non-goals for v1
-- Real-time 30 FPS inference, guaranteed spatial tracking without an actual tracker, local GPU inference, embedded Docker daemon/research workers, automatic installation of NVIDIA models, or full autonomous mentoring/research agents. Provide extension interfaces for later phases.
-- Automatic conversion of arbitrary text-only embedding APIs into multimodal embedding models.
+The original Video RAG is not a demo to discard: its 30-second segmentation, video library, clip seeking, timestamped search results, per-view retrieval, RAG answers, experiments and Matryoshka evaluation are important product assets. Build on top of those capabilities. The first-page experience must not collapse to a configuration editor, camera controls or an empty-state screen.
 
-## 2. Existing repository constraints and migration
+**Explicitly abandon the previous optimization target of <1 GB memory and ~1 vCPU application load.** Fit the provisioned Hugging Face **CPU Basic: 2 vCPU, 16 GB RAM, 50 GB ephemeral disk**. Take advantage of RAM for caches, metadata, indexes, thumbnails and process separation; continue using remote inference for large AI models. Memory does not create extra CPU capacity; use queues, adaptive video sampling and bounded FFmpeg jobs. Do not require local GPU or DGX Spark.
 
-Verified code structure: `web/` Next.js 16; `vrag/api.py` FastAPI; `vrag/rag.py` uses `openai.OpenAI` with local vLLM base URL and nonstandard `video_url` / `audio_url` with `file://` paths; `vrag/embedder.py` forces `SentenceTransformer(..., device="cuda")`; `vrag/index.py` NumPy cosine retrieval over saved `.npy` vectors; `serve/` vLLM stack. `vrag/api.py` eagerly warms embedding model at startup.
+## 1. Verified repo/branch facts and migration decision
 
-Required adaptations:
-- Split dependency groups into **runtime**, **offline ingestion/evaluation**, and **legacy local inference**; install runtime only in production.
-- Replace eager `get_model()` startup with health-checked remote provider initialization; missing optional providers should degrade specific features, not crash the app.
-- Introduce provider adapters with capability negotiation and per-role credentials; use the OpenAI-compatible interface where supported, but account for provider-specific image/video/audio payloads and detection APIs.
-- For cloud VLMs lacking video input, extract a bounded number of frames from a retrieved clip and send supported image parts plus transcript and timestamps. Do not send `file://` references to remote providers.
-- Preserve existing index and MRL evaluation only for compatible models; new embedding provider/model/dimension means a separate versioned index and re-embedding. For text-only embeddings, index transcripts and frame captions; disable unsupported video/audio/fused embedding views with explicit UI explanations.
-- Keep FFmpeg/video ingestion optional and out of the live request path; retain HTTP Range media playback.
-- Ensure existing routes and frontend views still function (with graceful no-index empty states).
+- `main`: original Next.js 16 / React 19 / Tailwind video RAG frontend, with Library at `/`, Search, Ask, Experiments, Architecture and video-detail/clip player. Original color tokens include `--page`, `--surface`, `--surface-2`, `--text-primary`, `--text-secondary`, `--accent`.
+- `feature/visual-mentor`: 14 commits ahead of main at review; implemented tested camera UI, remote adapters, YAML routing, runtime and authorization. `docs/release-readiness.md` reports 77 backend and 12 mocked-browser tests, plus successful synthetic live Laya inference, but not actual HF/USB/NVIDIA/Whisper qualification. Preserve this as an implementation donor, not the UI baseline.
+- `deploy-huggingface-space-2826124284938220779`: one additional commit beyond `feature/visual-mentor` (PR #1, deployment setup, extra Next config). This is **not** the architecture or design baseline. Audit its deployment changes individually; avoid conflicting `next.config.ts` and `next.config.mjs`.
+- The original `main` `spec.md` describes the previous ultra-light direction. **Replace that specification on the NEW development branch only** with this file. Do not rewrite `main` or merge legacy branches prematurely.
 
-## 3. Target architecture
+Implementation rule: create the new feature branch from `main`; preserve its `web/` markup/components/styles as the source of truth. Port tested infrastructure from `feature/visual-mentor` by *selective file-level migration or careful cherry-picking with UI hunks rejected*. Do not merge the entire prior feature branch blindly, and do not discard backend test coverage.
 
-```text
-Laptop browser (HTTPS; built-in + USB cameras; local preview)
-  ├─ Next.js Live, Library, Search, Ask/Mentor, Models & Routing
-  ├─ getUserMedia, device enumeration, per-camera frame sampling
-  └─ explicit uploads of selected frames/audio
-        │ same-origin /api and /media
-Private HF Docker Space :7860
-  ├─ static Next.js export (preferred if compatible), or slim Next standalone server
-  ├─ FastAPI, session manager, config manager, provider registry
-  ├─ live observation coordinator, typed fusion, mentor event stream
-  ├─ small NumPy index + SQLite (or ephemeral state)
-  └─ outbound HTTPS to approved inference providers
-       ├─ Laya/Jev visual decisions
-       ├─ external NVIDIA-compatible detector/tracker
-       ├─ cloud VLM / mentor reasoning
-       ├─ Whisper-compatible remote STT
-       └─ remote embeddings
+## 2. Product vision and primary user journeys
+
+**A. Browse and learn from videos** — Landing page is the original enriched Library: thumbnails, source titles, metadata, durations, previews, indexing status, filters and recent content. Open a video-detail page, inspect segments/transcripts/keyframes, seek to cited moments, and return to search/Ask with context.
+
+**B. Search across videos** — Keep text, frame, video, audio, fused and hybrid retrieval views whenever a compatible index exists. Expose model identity, indexing state, vector dimensions and honest unsupported states. Search by natural language and, when a real cross-modal embedding provider supports it, by uploaded image. Display sources and timeline markers.
+
+**C. Ask / Video RAG** — Ask questions about indexed clips; retrieve evidence, answer via external multimodal LLM, cite exact clips and timestamps, allow inline playback. Provider selection should not break retrieval or silently substitute false multimodal semantics.
+
+**D. Live Mentor** — Add a polished `Live` workspace whose visual language matches original Video RAG. From the laptop browser, capture built-in and USB cameras concurrently (where OS/browser permits), show dual video previews, overlays and observations, select inference routes, get step-by-step advisory guidance, push-to-talk to remote Whisper. Link selected observations to current video research and saved sessions.
+
+**E. Models & Routing** — A professional configuration studio added to the original navigation, not the homepage. Declare remote providers, assign models to functions, upload/edit/export a `.yaml` / `.yml` profile, test connections, preview changes, apply/rollback safely, and show traceable concurrent provider results (e.g., Laya and NVIDIA operating on the same frame).
+
+**F. Import / Ingest** — Upload media into the Library and create/refresh searchable segments and thumbnails using local CPU FFmpeg when appropriate. Remote transcription, embeddings and VLM enrichment must run as bounded background jobs with status and retries; never block the web UI.
+
+## 3. UI / experience specification — highest priority
+
+### 3.1 Original UI as invariant
+
+Before code changes, capture baseline screenshots at desktop (1440px), laptop (1280px), tablet and mobile for `/`, `/search`, `/ask`, `/experiments`, `/architecture`, `/videos/[id]` using seeded fixtures. Inventory the actual components, typography, colors, card metrics, chart styles, page gutters and clip-modal interactions. Establish screenshot regression tests. Do not copy the currently deployed `openweb` styling as a reference.
+
+Preserve the original component-level UI: `web/src/components/Nav.tsx`, `NavLinks.tsx`, `Controls.tsx`, `ClipPlayer.tsx`, `web/src/app/Library.tsx`, Search/Ask views, video details and charts. Changes may improve usability and responsiveness, but original workflows, content density, look and affordances must remain recognizable. Reuse existing Tailwind tokens and component patterns. Avoid generic `.vm-panel` / `.vm-button` aesthetics if they clash with the original design; replace those with shared design-system primitives matching existing page cards/controls.
+
+### 3.2 Navigation and site map
+
+The canonical primary navigation is:
+- **Library** (`/`, original landing page)
+- **Search** (`/search`, existing)
+- **Ask** (`/ask`, existing; includes source-aware mentoring questions)
+- **Live** (`/live`, new first-class workspace)
+- **Experiments** (`/experiments`, existing)
+- **Architecture** (`/architecture`, existing)
+- **Models & Routing** (`/models`, new; may live in a visually coherent Settings group if width demands it)
+
+Maintain video-detail pages and clip-modal navigation. The logo/name can become `Video RAG · Visual Mentor` without losing context. Navigation must work with keyboard and narrow widths; prioritize meaningful content over settings clutter.
+
+### 3.3 Live workspace wireframe (visual guidance, not prescriptive CSS)
+
+```
+Top: original Video RAG navigation
+Page title: Live Visual Mentor      [Camera profile ▼] [Routing profile ▼] [Session status]
+┌─────────────────────────────┬─────────────────────────────┐
+│ Camera A • laptop           │ Camera B • USB              │
+│ full native preview         │ full native preview         │
+│ boxes / track IDs           │ boxes / track IDs           │
+│ device • resolution • FPS   │ device • resolution • FPS   │
+│ Start / Stop / Share toggle │ Start / Stop / Share toggle │
+└─────────────────────────────┴─────────────────────────────┘
+┌─────────────────────────────┬─────────────────────────────┐
+│ Scene timeline              │ Mentor guidance             │
+│ detections / scores /       │ goal, step, next action,    │
+│ frame stamps / model source │ supporting video citations  │
+└─────────────────────────────┴─────────────────────────────┘
+Bottom: Push-to-talk / transcript, active routes, errors/latency,
+        recent snapshots and links to Search / Ask / video clips.
 ```
 
-Do not require public inbound ports besides 7860. Do not run Docker research agents inside the Space; future research worker integration is outbound HTTPS to authenticated job APIs.
+Support side-by-side/stacked layouts, fullscreen camera focus, overlay toggle, photo capture, freeze-frame for inspection, timeline scrubbing, visible camera permission/connection states, accessible control labels, informative onboarding and attractive empty states. Never auto-start capture. Never advertise 'tracking' if upstream results contain only per-frame detections without persistent track association.
 
-## 4. UI requirements
+### 3.4 Models & Routing studio wireframe
 
-### Navigation
-- `Live` (default), `Library`, `Search`, `Ask / Mentor`, `Models & Routing`, optional `Experiments` developer view.
-- Preserve current library/search/Ask UX and mobile-responsive layout.
+```
+Models & Routing
+[Active profile ▼] [Save as] [Import YAML] [Export] [History/Rollback]
+Provider cards: Laya | NVIDIA | Whisper | Cloud VLM | Embeddings | Custom
+Feature matrix: Camera A/B scene | detect | track | mentor | STT | RAG | ingest
+Route detail: single / fallback / parallel / sequential / conditional
+Visual graph: Camera B → NVIDIA detector → Laya → mentor
+YAML editor / schema errors / side-by-side diff
+[Test synthetic] [Dry-run] [Apply]   Trace + latency + error details
+```
 
-### Live tab (`/live`)
-- Enumerate `videoinput` devices **after user permission**; show browser-provided labels. Do not assume IDs or labels are stable across browsers/restarts.
-- Two independently selectable cameras; allow one or both, gracefully report OS/browser device contention.
-- Per-camera start/stop, device selection, resolution, sample interval, enable/disable sending, pipeline/profile selection; combined-view toggle.
-- Local previews should remain fluid even when inference is slow. Defaults: 640x480, 1 analysis frame/sec per enabled camera, bounded JPEG/WebP quality, configurable cap of 2 FPS for MVP. Backpressure: max 1 in-flight analysis per camera; skip rather than queue stale frames.
-- Frame IDs, camera IDs, client monotonic timestamps, server receipt timestamps, config version, and request IDs for correlation.
-- Display detector bounding boxes with correct coordinate transforms under aspect-fit, mirrored previews, orientation, and resize. Only draw boxes when the result matches the frame/camera and coordinates are validated. Show confidence and model provenance.
-- Observation timeline, model status/latency, errors, last updated time, mentor guidance panel, manual Analyze button, pause/resume, clear session.
-- Camera tracks stop on tab teardown, stop button, or permission revocation; no automatic recording or background capture.
-- Push-to-talk microphone via browser; send bounded audio clips to remote STT, never initialize local Whisper.
+Offer **both** a form-based route builder and raw YAML editing. YAML upload populates editor and preview but does not apply immediately. Show endpoint URLs (redacted only where they reveal secrets), model IDs, protocol/capabilities, privacy authorization, expected payload type, cost/latency hints and destination status. Provider selection can be overridden for a single live session without changing the global default when safe. Support `Laya only`, `NVIDIA only`, `Hybrid parallel`, `NVIDIA→Laya`, `Fallback`, `Custom` preset profiles.
 
-### Models & Routing tab (`/models`)
-- Provider registry: label, protocol/adapter, endpoint, model ID, capability declarations, timeout, concurrency, authentication **secret reference**, destination trust tier; never return API key values to browser.
-- Feature routing matrix: per-camera scene recognition, object detection, object tracking, visual decision, mentor reasoning, video RAG, text embeddings, multimodal embeddings, transcription, future research.
-- Strategies: `single`, `fallback`, `parallel`, `sequential`, `conditional`. `ensemble` only when a typed merger exists; `parallel` policies `all`, `first_valid`, `quorum` where valid.
-- YAML editor, file upload (`.yaml`, `.yml`), download template, validate, preview diff, apply atomically, export current redacted config, restore prior version, profile switch. Show actionable validation errors.
-- Connection test and dry-run routing using safe synthetic payloads; do not send real camera frames during tests without explicit opt-in.
-- Live routing monitor with per-model status, latency, error, and provenance; do not expose secrets or sensitive payloads in logs.
+## 4. Runtime architecture for HF CPU Basic
 
-## 5. Configuration format
+```
+Browser HTTPS (laptop integrated + USB camera)
+   └── Original Next.js UI + Live + Models editor
+           └── same-origin /api and /media
+                  ├── Next.js web server (or suitable build output)
+                  └── FastAPI backend (private loopback)
+                         ├── Video Library, upload, segmentation, thumbnails
+                         ├── FFmpeg bounded background ingestion workers
+                         ├── transcript and metadata DB / index manager
+                         ├── NumPy search, MRL/RRF where compatible
+                         ├── remote provider registry and feature router
+                         ├── live-session coordinator, fusion, provenance
+                         └── authorized outbound HTTPS inference endpoints
+                                  ├── Laya/Jev
+                                  ├── NVIDIA detection/tracking (verified adapter)
+                                  ├── Cloud VLM and mentor LLM
+                                  ├── Whisper-compatible STT
+                                  └── Text / multimodal embeddings
+```
 
-Create `config/schema.py` (Pydantic) and `config/examples/` YAML templates. The following is an **illustrative schema**; adjust names as needed but preserve these semantics and document any changes.
+Use Docker, Python FastAPI and original Next.js (do not switch UI stacks). One externally exposed port `7860`; FastAPI stays on loopback or behind the same-origin gateway. Keep the Node server if needed for Next SSR; static export only if all existing UI/route behavior remains intact. Local FFmpeg and libraries are permitted for **media processing**; local GPU inference or large model weights are not required. Allow optional small CPU helpers (image hashing, VAD, keyframe extraction, simple tracking/association) if benchmarked; no blanket exclusion of `onnxruntime`/OpenCV/other reasonable CPU libraries.
+
+**Resource budgets (soft, measured rather than ideological):** target <8 GB memory in a normal dual-camera + moderate-index workload and keep at least 3–4 GB headroom; maximum under actual 16 GB cgroup. Background job concurrency defaults to 1–2 on 2 vCPU, adjustable through config; bounded queues and upload sizes; no unbounded 30 FPS cloud inference. Benchmark UI latency, FFmpeg throughput, startup, frame-to-overlay p50/p95, memory and provider-cost estimates. No artificial 200 MiB target.
+
+**Durability:** 50 GB base disk is ephemeral. Do not assume mounted persistent storage exists. Check current HF account/Space capabilities; external S3-compatible object store or private HF Dataset (with appropriate access controls) can hold video assets/index snapshots; external durable database if necessary. Store auth-sensitive runtime config in approved durable storage, backup/recover, never write API secrets into snapshots. Library data should survive Space rebuild/restart if persistence is configured; without it, warn explicitly. Verify runtime storage rather than trusting historical docs.
+
+## 5. Video RAG enhancement (must recover original product value)
+
+- Keep ingestion pipeline concepts: upload/import, media proxy generation, thumbnail/keyframes, ~30-second timestamp-aligned segments, transcripts, embedding/metadata manifests, retrieval views and RAG answers.
+- Add video import UI and asynchronous jobs: upload progress; deduplication; FFmpeg transcode/seek-friendly proxy; remote Whisper transcription with timestamps; segment/keyframe extraction; remote image/video embeddings when supported; retry/resume/cancel; re-index status and audit trail.
+- Use remote **text embeddings** for transcripts/captions. For genuine `frame`, `video`, `audio`, `fused` views, use a **verified compatible multimodal embedding family** providing the requisite shared space. Text-only vector similarity cannot masquerade as cross-modal retrieval. If missing, show disabled/unavailable view, explanation and setup path; retain legacy read-only manifests where compatible.
+- Version vector indexes by provider, model, modality/view, dimension, preprocessing and segmentation version. Re-embed on changes, never mix incompatible vectors; enforce valid MRL dimensions and renormalization if model supports truncation.
+- Keep reciprocal-rank fusion, source provenance and timestamps; avoid lowering retrieval quality just to remove ML dependencies.
+- VLM answer adapter: send provider-supported image frames/transcripts/audio payloads; no `file://` references to remote APIs. Use strict caps on frames per retrieved clip and detailed citations.
+- Maintain evaluation/experiments UI: synthetic and manual queries; recall@k and per-view comparisons only when results are genuinely comparable; preserve old experiment history with model labels and data provenance.
+- Support a populated demo library or **realistic seeded fixture library** when no production corpus exists, clearly marked as sample content. No broken empty dashboard on first launch.
+
+## 6. Browser dual-camera and live perception
+
+- Use `navigator.mediaDevices.getUserMedia`, `enumerateDevices`, `devicechange`, `MediaStreamTrack` lifecycle; browser owns webcams. Physical laptop and USB cameras are selected on the user machine, never inside the HF container.
+- Camera A/B can run independently or simultaneously, subject to physical and browser permissions; retain device selection in browser-local state (device IDs are not portable YAML config).
+- Browser always renders fluid preview. Transfer only explicitly authorized sampled frames/crops. Configurable JPEG/WebP quality, FPS and resolution; adaptive backpressure, per-camera maximum outstanding requests, cancellation on stop, stale frame/route revision rejection, stop when browser tab hidden when appropriate.
+- Bounding boxes are accepted only from a verified spatial detector/tracker output. Normalize coordinates with source dimensions, account for contain/cover, mirror, resize and orientation; show confidence, label, provider provenance and optional track ID. Laya decisions never become synthetic boxes.
+- Split detector (spatial), tracker (temporal identity), Laya (rapid visual decisions), VLM (complex interpretation), mentor (advice); permit other provider capability combinations where validated.
+- Provide timestamped camera/frame IDs for multi-view synchronized observations; never infer scene calibration or 3D geometry from two unsynchronized views.
+- Remote Whisper push-to-talk and uploaded-video transcription; optional voice feedback only if a configured speech synthesis provider is available.
+- No default recording or long-term saving of live frames; session snapshots require explicit save and clear retention rules.
+
+## 7. Flexible inference and YAML routing
+
+**Port and improve** prior `config/schema.py`, `vrag/providers.py`, `vrag/routing.py`, `vrag/mentor_api.py`, `vrag/egress.py`, configuration tests and live-safety guards from `feature/visual-mentor`, while adapting interfaces to the original UI and new feature map.
+
+Provider configuration supports: friendly label, adapter/protocol, endpoint environment reference, model identifier, capabilities, payload schema version, supported modalities, auth **secret reference**, timeouts, concurrency, max payload, allowed destinations, privacy tier, cost metadata, test status. Validate credentials only server-side; never write them into YAML.
+
+Routing strategies: `single`, `fallback`, `parallel`, `sequential`, `conditional`, and typed `ensemble` only where defensible. Parallel Laya+NVIDIA returns independent provenance-preserving outputs; result fusion combines semantically compatible fields without forging detections. Partial provider failures do not erase valid results. Include `all`, `first_valid`, or quorum policy where supported. Sequential passes typed outputs explicitly, not arbitrary prompt concatenation. Thresholds need calibration and policy documentation.
+
+**Security:** safe YAML loader, strict schema and migration version, 64KiB default file limit, schema lint and preview diff, authorized apply, compare-and-swap version, snapshot/rollback, deny SSRF/private hosts, redirect-safe pinned resolution or vetted egress proxy, per-destination sensitive-camera authorization checked again after fallbacks/parallel dispatch, secret redaction, request quota/concurrency, safe errors. HF private visibility is necessary but not sufficient for app-level authorization.
+
+Example (illustrative; Codex must migrate to actual validated schema):
 
 ```yaml
-version: 1
-profile: hybrid-dual-camera
+version: 2
+profile: hybrid-lab
 providers:
   laya:
     adapter: laya-vision
     base_url_env: LAYA_BASE_URL
     api_key_secret: LAYA_API_KEY
-    model: laya-vision
-    capabilities: [image_understanding, visual_decision]
+    model: thaitea/laya-vision
+    capabilities: [visual_decision]
     trust: approved_sensitive
-    timeout_ms: 5000
   nvidia:
     adapter: detection-http
     base_url_env: NVIDIA_DETECTION_BASE_URL
-    api_key_secret: NVIDIA_DETECTION_API_KEY
-    model: detector-model-id
+    api_key_secret: NVIDIA_API_KEY
+    model: VERIFIED_NVIDIA_DETECTOR_ID
     capabilities: [object_detection, bounding_boxes]
-    trust: approved_sensitive
-    timeout_ms: 5000
-  vlm:
-    adapter: openai-chat-vision
-    base_url_env: VLM_BASE_URL
-    api_key_secret: VLM_API_KEY
-    model: vision-model-id
-    capabilities: [image_understanding, reasoning]
-    trust: approved_sensitive
-  embeddings:
-    adapter: openai-embeddings
-    base_url_env: EMBEDDINGS_BASE_URL
-    api_key_secret: EMBEDDINGS_API_KEY
-    model: embedding-model-id
-    capabilities: [text_embeddings]
     trust: approved_sensitive
   whisper:
     adapter: openai-transcription
     base_url_env: WHISPER_BASE_URL
     api_key_secret: WHISPER_API_KEY
-    model: whisper-model-id
+    model: VERIFIED_WHISPER_ID
     capabilities: [transcription]
+    trust: approved_sensitive
+  cloud_vlm:
+    adapter: openai-chat-vision
+    base_url_env: VLM_BASE_URL
+    api_key_secret: VLM_API_KEY
+    model: VERIFIED_VLM_ID
+    capabilities: [image_understanding, reasoning]
     trust: approved_sensitive
 features:
   live.camera1.scene:
@@ -136,105 +199,106 @@ features:
     providers: [nvidia, laya]
     result_policy: all
     fusion: spatial_semantic
-  live.camera2.tracking:
-    strategy: single
-    providers: [nvidia]
-    enabled: false # Enable only after verified tracker support
   live.visual_decision:
     strategy: fallback
-    providers: [laya, vlm]
-    fallback_on: [timeout, provider_error, invalid_output]
-  rag.text_embeddings:
-    strategy: single
-    providers: [embeddings]
+    providers: [laya, cloud_vlm]
   audio.transcription:
     strategy: single
     providers: [whisper]
-cameras:
-  camera1: {analysis_fps: 1, width: 640, height: 480}
-  camera2: {analysis_fps: 1, width: 640, height: 480}
-privacy:
-  record_video: false
-  upload_only_on_explicit_start: true
-  require_approved_destination_for_camera: true
 ```
 
-**Camera physical device IDs must be browser-local settings**, not trusted server YAML identifiers. YAML provider entries refer to logical camera slots. Allow user-provided provider endpoints only with an admin-controlled allowlist; arbitrary URLs must not be accepted simply because they are in uploaded YAML.
+The existing live Laya contract has only been qualified with synthetic frames and an advisory fixed question; inspect the actual upstream schema and do not claim free-form scene captioning or object localization without evidence. NVIDIA and Whisper require real endpoint qualification; placeholder model IDs are never deployable defaults.
 
-## 6. API contracts (versioned)
+## 8. HF Space deployment and existing openweb remediation
 
-Implement typed request/response models and document OpenAPI schemas:
-- `GET /api/health` — lightweight health, no provider secrets.
-- `GET /api/providers` — redacted provider/capability list.
-- `POST /api/providers/{id}/test` — permission-gated, bounded synthetic test.
-- `GET /api/config`, `GET /api/config/template`, `POST /api/config/validate`, `POST /api/config/apply`, `POST /api/config/rollback` — admin-authorized; versioned atomic config updates.
-- `POST /api/live/sessions`, `DELETE /api/live/sessions/{id}`.
-- `POST /api/live/sessions/{id}/frames` — camera_id, frame_id, capture timestamp, bounded image, requested feature/profile; respond with typed observation and per-provider status. Consider SSE for asynchronous updates, but HTTP request/response is acceptable for v1.
-- `POST /api/live/sessions/{id}/transcribe` — bounded audio upload to remote Whisper.
-- Keep `/api/videos`, `/api/search`, `/api/search/image`, `/api/ask`, `/media/*`, and experiments endpoints backward compatible where feasible.
+Target `https://huggingface.co/spaces/Leon4gr45/openweb` only after user approval. Do not assume the current deployment's content, access mode or source tree can be inspected remotely without credentials; verify via HF repo/API and browser screenshots. **Space must be private**, not merely a private GitHub development branch. Before deployment: back up existing HF Space repo/config/data, capture current screenshots, verify secrets, and prepare rollback commit. Publish from the new reviewed branch using the approved HF deploy method. Keep only application port 7860 public via HF; no additional exposed ports.
 
-Standard observation schema:
-```json
-{
-  "session_id": "session-id", "camera_id": "camera2", "frame_id": "184",
-  "config_version": 3, "observed_at": "ISO-8601",
-  "detections": [{"object_id": "track-1", "label": "hand", "bbox_xyxy": [0.2, 0.1, 0.6, 0.8], "confidence": 0.9, "source": "nvidia"}],
-  "decisions": [{"action": "continue_observation", "reason": "hand visible", "source": "laya"}],
-  "provider_results": [{"provider": "laya", "status": "ok", "latency_ms": 240}],
-  "warnings": []
-}
-```
-Bounding boxes use **normalized [0,1] xyxy** coordinates with explicitly defined source dimensions and validation. `object_id` must only represent persistent identity if a real tracker supplies it; otherwise use per-frame detection IDs.
+Do not merge PR #1's deployment branch wholesale: audit `.hfignore`, README metadata, `vrag/api.py` OpenAPI changes and `web/next.config.mjs`. Ensure exactly one authoritative Next config and functional `/api`, `/media`, range seeking, health checks, frontend routes and HF reverse proxy host settings. A private Space should reject anonymous page, API and media access; test actual private-app access with a logged-in browser.
 
-## 7. Routing engine behavior
+Provide a visible health/status UI for absent provider credentials, storage, indexing and access. No production data migration without backup; no public video upload endpoints without user/app authorization. Do not publish/demo with misleading provider readiness badges.
 
-- Provider adapters declare request/response formats and capabilities; do not equate OpenAI chat compatibility with detection, embeddings, video, or transcription compatibility.
-- `single`: one model; `fallback`: retry only eligible errors and approved destinations; `parallel`: bounded async calls, independent errors; `sequential`: typed intermediate outputs; `conditional`: validated deterministic predicates (not arbitrary Python expressions).
-- Result fusion: spatial detector owns boxes, Laya owns semantic/decision output; associate results by frame and object ID only where supported; preserve provenance and disagreement. Do not average unrelated text outputs or hallucinate box coordinates.
-- Timeouts, max input size, rate limiting, bounded concurrency, cancellation, retry budgets, and circuit breakers. Do not queue unbounded frames.
-- Sensitivity checks are per actual destination **and repeated after fallback**. No silent sensitive-data routing to unknown providers. Laya inference infrastructure may be approved separately from generic `auto` routes.
-- Changes to config affect new requests only; in-flight calls use a snapshot/version.
+## 9. Mandatory private GitHub backup every 12 hours
 
-## 8. Security, privacy, persistence
+**Requirement:** Create a **separate private GitHub backup repository** (suggested name: `JsonLord/visual-mentor-backups`, unless an existing private repository is explicitly selected). Do **not** use the public application source repository as the destination for private user data. Repository creation, credentials, and activation require an authorized account/explicit confirmation; never claim that a workflow is active based only on generated files.
 
-- Private Space; do not assume HF UI privacy alone authorizes config mutation or outbound provider access. Require admin authorization for configuration APIs; secure same-origin endpoints, validate session ownership, and use CSRF protections where applicable.
-- Secrets are HF Space Secrets/environment variables, never in YAML or frontend. Export redacted YAML only.
-- Parse YAML safely with strict Pydantic schema, max upload size, no aliases that cause resource exhaustion, no arbitrary code, no file paths or shell commands. Protect against SSRF (approved hosts, DNS/IP checks, redirect restrictions, block metadata and private destinations unless explicitly configured by admin).
-- HTTPS camera capture, explicit opt-in before remote frame/audio transfer; display active destinations; no recording by default; no raw camera frames in logs.
-- HF Space ephemeral filesystem: configuration history and SQLite/indexes require explicit persistent storage or external store. If absent, clearly label profiles/session state as ephemeral and ship read-only defaults. Use atomic writes and backup before switching.
-- Limit uploads, media processing time, payload sizes, retention, and access to recordings. Never expose API credentials in logs, browser responses, or stack traces.
+### 9.1 Schedule and execution boundary
 
-## 9. Docker and deployment
+- **Primary scheduler:** GitHub Actions in the **private backup repository**, not an in-process timer inside the HF Space. Use `on: schedule` with `cron: '17 0,12 * * *'` (UTC: every 12 hours) plus `workflow_dispatch` for immediate manual backups and testing. Scheduled Actions may run late or occasionally be skipped; treat **12 hours as the target cadence**, not a hard real-time guarantee. Add a stale-backup alert based on the actual successful-backup timestamp.
+- **Primary data source:** Snapshot the **durable backing store** (approved private object store/database) instead of treating the Space's ephemeral filesystem as the only source of truth. If a protected Space export endpoint is used for derived state, authenticate through the HF private-access layer **and** an application-level short-lived/read-only export credential, verify it in a live staging test, and never expose unauthenticated dump URLs.
+- **Concurrency:** One backup per environment at a time (`concurrency` group); retry transient failures with bounded backoff; never record a success when an upload, checksum verification, or manifest write failed. Missed schedules must be visible and manually recoverable.
+- **Offline/sleep behavior:** The Action must not silently report success if the Space is sleeping/unreachable. Prefer direct reads from external durable state; if an export endpoint is unavoidable, report failure/blocked state, retry safely, and alert. Do not wake or mutate production without approval.
 
-- Add `Dockerfile` (multistage) and HF Space README frontmatter (`sdk: docker`, `app_port: 7860`, private visibility configured in HF settings, not via README alone).
-- Prefer Next.js static export served by FastAPI if feature-compatible; otherwise use Next standalone plus FastAPI in one container behind a same-origin reverse proxy. Only port 7860 exposed; no new public ports.
-- Runtime image must not download models, require CUDA, initialize vLLM, or run transcription locally. No local AI inference fallback unless explicitly introduced in a separate future profile.
-- Add `env.example` with names only, a secret provisioning guide, health checks, and deterministic startup.
-- Avoid installing the legacy `serve/` vLLM environment. Preserve offline tooling for developers in optional groups.
+### 9.2 Backup scope, confidentiality and storage limits
 
-## 10. Tests and acceptance gates
+Include versioned, consistent snapshots of:
 
-1. Build and run the production image on CPU-only machine; no `torch`, `transformers`, `sentence_transformers`, `vllm`, CUDA or model downloads in runtime. Record image size, startup time, idle and peak RSS.
-2. Browser E2E: grant camera permission, list two cameras where available, show simultaneous previews, independently start/stop and switch devices; simulated cameras for CI, real USB test documented as manual.
-3. Browser sends frames only after explicit opt-in; camera tracks stop on teardown; no frame/video stored by default.
-4. Mock provider contract tests for Laya, detector, VLM, embeddings, Whisper; capability failures are explicit.
-5. YAML upload valid/invalid tests, secret redaction, SSRF blocking, authorization, atomic apply/rollback, config snapshots.
-6. Routing tests: single/fallback/parallel/sequential/conditional, mixed success, timeout, cancellation, confidence/provenance, no stale-frame overlay, sensitive fallback denial.
-7. Video RAG regression tests: library, media seeking, text search, Ask with frame fallback for unsupported remote video; provider changes force separate indexes and show disabled incompatible views.
-8. UI: Models tab can switch Laya-only, NVIDIA-only, and hybrid routes **without redeploying**; live monitor displays which providers handled a frame.
-9. Remote STT push-to-talk works without local Whisper.
-10. Private HF Space deploy documented and verified where credentials are available; never claim live success from mocked tests.
+1. Model provider and route YAML profiles, including configuration history/rollback versions, **with no plaintext credentials or camera data**.
+2. Application SQLite/metadata databases (use SQLite online-backup API or another transactionally consistent snapshot, never a live `.db` file copy), video/segment metadata, transcripts/captions, ingest/research job state, and saved non-sensitive mentor settings.
+3. Versioned search/index manifests and manageable vector index artifacts, identified by embedding provider/model/dimensions and corpus revision; include enough information to recreate indexes if omitted by a size policy.
+4. Source deployment identifiers, Space revision, schema version, backup format version, timestamps, counts, SHA-256 checksums and a complete **backup coverage manifest** (including excluded classes/objects and why).
 
-## 11. Implementation milestones
+**Large original/proxy videos, audio and image assets** must be backed up to a private durable object store (or explicitly budgeted Git LFS if appropriate), NOT silently shoved into normal Git history. Store cryptographically verifiable asset inventory, object-store location identifiers and integrity hashes in the private GitHub backup repository. For a full restore, verify the object copies really exist and are accessible; a metadata-only backup is never advertised as a full media backup. Avoid GitHub's per-file Git limits, runaway repository history and unbounded Actions artifact usage. Apply explicit snapshot-retention and pruning policies (suggested: 14 days of 12-hourly snapshots, 8 weekly, 6 monthly, adjustable), without deleting the most recent known-good copy; document storage/cost implications.
 
-- **M0 — Baseline:** inspect repo, inventory dependencies/routes, record tests, produce architecture notes. Do not break legacy workflows.
-- **M1 — Cloud-only RAG:** split dependencies, remote provider adapters, eliminate eager CUDA startup, preserve library/search/Ask, test index migration.
-- **M2 — HF Docker:** one-port deployment, health, secret handling, persistent-state strategy, CPU resource report.
-- **M3 — Live dual camera:** browser capture, two streams, sampling, opt-in, observation APIs, overlays and session lifecycle.
-- **M4 — Routing Studio:** provider/feature UI, YAML template/upload/validation/apply/rollback, profile switching, telemetry.
-- **M5 — Hybrid perception:** Laya decision adapter + NVIDIA-compatible detection adapter + parallel/fallback/typed fusion, remote Whisper.
-- **M6 — Mentoring foundation:** observation-to-guidance contract, simple task state, hooks for future remote research agents; do not claim full mentoring autonomy.
+Backups must be **encrypted before entering GitHub**, even though the target repo is private. Recommended: an age recipient/public key configured for backup encryption; the private decryption key is stored independently of GitHub and the Space (offline/secure secret manager) and is never committed or logged. For encrypted binary snapshots, avoid storing secret plaintext in manifests, logs, Git diffs, GitHub Actions artifacts or issue alerts. Use a minimal-permission scoped credential/GitHub App where cross-repository reads or writes require it; the backup repository's workflow may write to its own repository using tightly scoped `GITHUB_TOKEN` `contents: write` permissions. Use protected repo settings, minimal access, no public releases or Pages. Do not grant broad `repo` PAT scope by default.
 
-## 12. Deliverables
+### 9.3 Implementation interfaces and UI
 
-Code, tests, migration notes, `spec.md`, `config/examples/*.yaml`, `env.example`, `Dockerfile`, HF README configuration, documented OpenAPI, `docs/architecture.md`, `docs/deployment-hf.md`, `docs/security.md`, and a validation report with actual vs target metrics. Preserve original features and avoid modifying production DGX services. If external endpoints are unavailable, provide contract-tested adapters and label live integration **unverified**.
+Implement a reusable backup/export service (e.g. `vrag/backup/`) and a self-contained runner (e.g. `scripts/backup_state.py` and `scripts/restore_state.py`). Add a private workflow at `.github/workflows/backup-12h.yml` in the **backup repository** (provide a documented installation/template path from the application source repo). Keep backup configuration separate from inference YAML, so importing model profiles cannot change backup destinations or tokens. Expose **admin-only status** in the existing UI's Settings/Models administration area: last attempted backup, last verified success, age, checksum/coverage result, failure reason and manual trigger instructions. A manual UI trigger, if added, must require administrator authorization and must not bypass GitHub schedule/approval controls.
+
+Implement `backup → upload → verify → manifest → report` and `list → download → verify checksums/signature/decrypt → dry-run → restore` flows. Restoration must support selecting a snapshot, checking compatibility, staging restored state in an isolated destination, verifying indexed media references and atomically promoting only after explicit operator confirmation. Never overwrite production state merely by running an automated test. Write `docs/backup-restore.md` with secrets provisioning, retention, alerting, data coverage, GitHub repo creation (private), operational costs and exact restore procedure.
+
+### 9.4 Mandatory qualification gates
+
+- Unit tests: consistent database snapshot under concurrent writes; excluded-secret scanning; no raw camera uploads; missing/corrupt asset detection; encrypted manifest/archives; size thresholds; failed exports and retries; no false success.
+- Integration tests: a **manual `workflow_dispatch`** run in the private backup repository produces a real encrypted snapshot, checksums, asset manifest and successful commit; simulated failure is visible and alerted; successful restore into clean temporary storage produces equivalent content and expected indexes/config revisions.
+- Resilience tests: Space container recreation or full rebuild does not eliminate the only copy of state; stale-backup monitor detects a deliberately missed schedule; retention does not remove the newest restorable backup.
+- Sign-off: show private repository visibility, backup history/timestamps, contents (redacted), exact scope/exclusions, restore verification evidence, and the difference between GitHub metadata backup and external media backup. **Do not mark v2 deployed/fully backed up until an actual off-Space restore test passes.**
+
+## 10. Phase milestones and evidence gates
+
+**P0 — Evidence/branch safety.** Inspect all three branches, screenshot baseline UI, snapshot existing Space if accessible; create new branch from main; write porting map and no-regression matrix; verify latest commit IDs. No production mutation.
+
+**P1 — UI parity foundation.** Original Library, Search, Ask, Experiments, Architecture, video-detail and ClipPlayer fully work and look like `main`. Add graceful seeded corpus/demo. Screenshot comparison baseline. This phase is a blocking gate.
+
+**P2 — Remote inference + real RAG.** Port tested provider/security/routing backend from feature; preserve existing original API contracts or supply backward-compatible adapters. Remote text embeddings, video-source citations, answer generation; frame/image/video/audio views only when verified index exists. Add corpus ingestion/background jobs.
+
+**P3 — Integrated Live.** Build camera UI using original components/design, port lifecycle guards, dual camera, overlays, timeline, mentor guidance and push-to-talk. Browser mock tests + manual physical camera checklist.
+
+**P4 — Models & Routing studio.** UI form builder + YAML upload/editor/template/diff/apply/rollback/profiles; Laya/NVIDIA parallel, sequential/fallback, STT; safe synthetic tests and routing trace. Add per-session override.
+
+**P5 — Durable storage and 12-hour backup.** Implement private GitHub backup repository workflow, consistent encrypted state snapshots, external media coverage manifests, retention/alerting and dry-run restore. Prove a `workflow_dispatch` backup and off-Space restore in a staging environment; do not claim success based on a local cron mock.
+
+**P6 — HF staging deployment.** Build resource-fit Docker image, restore/backup strategy, remote provider smoke tests. Deploy to **private staging Space only with explicit approval**. Validate external browser access, authenticated session, both physical cameras, API/media paths and object storage durability.
+
+**P7 — Controlled switch to `openweb`.** User visual approval using before/after screenshots; backup and rollback; switch only after tested staging sign-off. Preserve evidence.
+
+### Required test matrix
+
+- Backend functionality: `/api/videos`, details, `/api/search`, `/api/search/image` (supported/unsupported), `/api/ask`, `/api/stats`, experiments, media Range streaming, ingress/ingest states and errors.
+- UI: original page screenshot diffs, keyboard/mobile access, no missing nav, video seek, cited segments, meaningful no-data state, Live visual consistency.
+- Live: two distinct simulated streams, camera permission and contention, stop/dispose, stale-frame version checks, bounding-box overlay geometry/mirroring, combined observations, voice recording.
+- Models: schema/SSRF/secret/security tests, parallel/fallback/partial success, synthetic tests, real Laya, real NVIDIA/Whisper only with actual credentials, embedding mismatch/version isolation, restore after restart.
+- Backup: private repo, external 12-hour GitHub Actions schedule and manual dispatch, encrypted consistent snapshots, full scope/asset inventory, missed-run alert, real staging restore and retention.
+- Deployment: Docker startup, one exposed port, no local inference weights, measured 2-vCPU/16GB resource use, private HF authentication, external persistence/backups and rollback.
+
+### Done means
+
+1. Original Video RAG UX remains recognizable and fully functional (screenshots approved).
+2. The Library has useful content and a working upload-to-index pipeline or clearly seeded evaluation corpus.
+3. Search and Ask return evidence-backed answers with timestamps and playable clips.
+4. Dual-camera Live works from the **laptop browser**, independently and in parallel where hardware permits.
+5. YAML routes can switch Laya, NVIDIA, both, or a configured VLM; security checks remain intact.
+6. The private HF Space runs within its actual 2-vCPU / 16 GB allocation and operates without a DGX dependency.
+7. Storage durability and private access are tested in the actual deployment, not just locally.
+8. A **private GitHub backup repository** runs a verified backup every 12 hours (target), with encrypted snapshots, documented media coverage, alerts, and a successful clean restore test.
+9. Source, docs, test reports, screenshots, rollout/rollback instructions and branch SHAs are delivered.
+
+## 11. Explicit non-goals
+
+- Replacing the original Video RAG frontend or making Models & Routing the homepage.
+- Achieving an arbitrary ultra-small Docker/RSS metric at the cost of product quality.
+- Claiming any NVIDIA API is a spatial detector/tracker absent proof, or claiming Laya outputs boxes.
+- Running large local VLMs or Whisper on CPU Basic.
+- Continuous 30fps external inference, uncontrolled API spend or unconsented recording.
+- Launching Docker research subagents inside the HF Space during this UI/RAG restoration milestone.
+- Modifying DGX, Needle router or unrelated inference infrastructure.
