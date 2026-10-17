@@ -1,0 +1,115 @@
+{
+  "live": true,
+  "status": "blocked",
+  "namespace": "test-recovery-20261017-937e26ae",
+  "repository": "JsonLord/visual-mentor-backups",
+  "credential_source": "GH_TOKEN",
+  "http_events": [
+    {
+      "method": "GET",
+      "host": "api.github.com",
+      "status": 200,
+      "headers": {
+        "x-github-request-id": "8E2E:1BB071:2286C:711C7:6AD3D411",
+        "x-github-api-version-selected": "2022-11-28",
+        "x-ratelimit-limit": "15000",
+        "x-ratelimit-remaining": "14921",
+        "x-ratelimit-resource": "core",
+        "x-accepted-github-permissions": "metadata=read",
+        "x-oauth-scopes": "",
+        "content-type": "application/json; charset=utf-8",
+        "server": "envoy"
+      },
+      "client_authorization_attached": true
+    },
+    {
+      "method": "GET",
+      "host": "api.github.com",
+      "status": 404,
+      "headers": {
+        "x-github-request-id": "77B1:3FD457:FABDAE:341D926:6AD3D411",
+        "x-github-api-version-selected": "2022-11-28",
+        "x-ratelimit-limit": "15000",
+        "x-ratelimit-remaining": "14920",
+        "x-ratelimit-resource": "core",
+        "x-accepted-github-permissions": "contents=read",
+        "x-oauth-scopes": "",
+        "content-type": "application/json; charset=utf-8",
+        "server": "envoy"
+      },
+      "client_authorization_attached": true
+    },
+    {
+      "method": "GET",
+      "host": "api.github.com",
+      "status": 404,
+      "headers": {
+        "x-github-request-id": "9E38:15CAE4:251FB:79F1E:6AD3D412",
+        "x-github-api-version-selected": "2022-11-28",
+        "x-ratelimit-limit": "15000",
+        "x-ratelimit-remaining": "14919",
+        "x-ratelimit-resource": "core",
+        "x-accepted-github-permissions": "contents=read",
+        "x-oauth-scopes": "",
+        "content-type": "application/json; charset=utf-8",
+        "server": "envoy"
+      },
+      "client_authorization_attached": true
+    },
+    {
+      "method": "POST",
+      "host": "api.github.com",
+      "status": 201,
+      "headers": {
+        "x-github-request-id": "F605:363BB9:DDC6D8:2CF6533:6AD3D412",
+        "x-github-api-version-selected": "2022-11-28",
+        "x-ratelimit-limit": "15000",
+        "x-ratelimit-remaining": "14999",
+        "x-ratelimit-resource": "core",
+        "x-accepted-github-permissions": "contents=write; contents=write,workflows=write",
+        "x-oauth-scopes": "",
+        "content-type": "application/json; charset=utf-8",
+        "server": "envoy"
+      },
+      "client_authorization_attached": true
+    },
+    {
+      "method": "GET",
+      "host": "api.github.com",
+      "status": 200,
+      "headers": {
+        "x-github-request-id": "77B1:3FD457:FAC77F:341F981:6AD3D412",
+        "x-github-api-version-selected": "2022-11-28",
+        "x-ratelimit-limit": "15000",
+        "x-ratelimit-remaining": "14998",
+        "x-ratelimit-resource": "core",
+        "x-accepted-github-permissions": "contents=read",
+        "x-oauth-scopes": "",
+        "content-type": "application/json; charset=utf-8",
+        "server": "envoy"
+      },
+      "client_authorization_attached": true
+    },
+    {
+      "method": "POST",
+      "host": "uploads.github.com",
+      "status": 401,
+      "headers": {
+        "x-github-request-id": "FD3D:10E5C1:CD4E9:E9D17:6AD3D414",
+        "content-type": "application/json; charset=utf-8",
+        "server": "envoy"
+      },
+      "client_authorization_attached": true
+    }
+  ],
+  "failure_code": "github_authentication_failed",
+  "status_code": 401,
+  "failure_host": "uploads.github.com",
+  "request_id": "FD3D:10E5C1:CD4E9:E9D17:6AD3D414",
+  "committed_checkpoints": 0,
+  "recovery_verified": false,
+  "uncommitted_release_tag": "vm-test-recovery-20261017-937e26ae-20261017T200121863305766-33b55696676543a781ab99b712d7bf15",
+  "release_id": 416029153,
+  "asset_count": 0,
+  "namespace_checkpoint_lookup_status": 404
+}

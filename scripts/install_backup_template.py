@@ -9,6 +9,7 @@ if __name__ == '__main__':
     root=Path(__file__).resolve().parent.parent
     shutil.copytree(root/'deploy/backup-repository',destination)
     (destination/'scripts').mkdir(exist_ok=True)
-    shutil.copyfile(root/'scripts/coordinate_backup.py',destination/'scripts/coordinate_backup.py')
+    for name in ('coordinate_backup.py','qualify_private_space.py'):
+        shutil.copyfile(root/'scripts'/name,destination/'scripts'/name)
     shutil.copyfile(root/'docs/backup-restore.md',destination/'README.md')
     print('Inactive coordinator exported; activation and production deployment remain separate.')

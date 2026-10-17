@@ -37,13 +37,34 @@ def safe_path(name):
     return p
 
 
+class GitHubPermanentError(ValueError):
+    """A rejected credential/request must not be retried with the same input."""
+    def __init__(self, status, host, request_id=None):
+        self.status, self.host, self.request_id = status, host, request_id
+        self.code = 'github_authentication_failed' if status == 401 else 'github_request_rejected'
+        super().__init__(f'{self.code}: status={status} host={host}')
+
+
+def safe_http_event(response):
+    allowed = ('x-github-request-id', 'x-github-api-version-selected',
+               'x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-resource',
+               'x-accepted-github-permissions', 'x-oauth-scopes', 'content-type', 'server')
+    headers = {k:response.headers[k][:512] for k in allowed if k in response.headers}
+    if 'www-authenticate' in response.headers:
+        headers['www-authenticate'] = response.headers['www-authenticate'].split(' ',1)[0]
+    return {'method':response.request.method, 'host':response.request.url.host,
+            'status':response.status_code, 'headers':headers,
+            'client_authorization_attached':bool(response.request.headers.get('authorization'))}
+
+
 class GitHubStore:
-    def __init__(self, repo, namespace='production', token=None, client=None):
+    def __init__(self, repo, namespace='production', token=None, client=None, diagnostic=None):
         if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repo):
             raise ValueError('invalid repository')
         if not re.fullmatch(r'[a-z0-9-]{1,60}', namespace):
             raise ValueError('invalid namespace')
         self.repo, self.namespace = repo, namespace
+        self.diagnostic = diagnostic or (lambda event: None)
         self.client = client or httpx.Client(timeout=120, follow_redirects=False)
         self.token = token or os.environ.get('VM_BACKUP_GITHUB_TOKEN', '')
         if not self.token:
@@ -51,18 +72,29 @@ class GitHubStore:
         self.base = f'https://api.github.com/repos/{repo}'
         self.headers = {'Authorization': 'Bearer ' + self.token, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'}
 
+    def observe(self, response):
+        self.diagnostic(safe_http_event(response))
+
+    @staticmethod
+    def accepted(response):
+        if 400 <= response.status_code < 500 and response.status_code != 429:
+            raise GitHubPermanentError(response.status_code,response.request.url.host,
+                                       response.headers.get('x-github-request-id'))
+        response.raise_for_status()
+
     def request(self, method, url, *, missing=False, **kwargs):
         # Retry only bounded transient errors. Writes are reconciled by their
         # immutable IDs/names by the caller; no unsafe blind creation loops.
         for attempt in range(3):
             try:
                 response = self.client.request(method, url, headers=self.headers, **kwargs)
+                self.observe(response)
                 if response.status_code == 404 and missing:
                     return None
                 if response.status_code in (429, 500, 502, 503, 504):
                     if attempt < 2:
                         time.sleep(min(2**attempt, 4)); continue
-                response.raise_for_status()
+                self.accepted(response)
                 return response
             except (httpx.TimeoutException, httpx.NetworkError):
                 if attempt == 2: raise ValueError('github_network_failure') from None
@@ -99,13 +131,15 @@ class GitHubStore:
         url = self.base + '/releases/assets/' + str(int(ref['id']))
         for attempt in range(3):
             try:
-                response = self.client.get(url, headers=headers)
+                response = self.client.get(url, headers=headers, follow_redirects=False)
+                self.observe(response)
                 if response.status_code in (301, 302, 303, 307, 308):
                     location = httpx.URL(response.headers['location'])
                     if location.scheme != 'https' or location.host not in ('release-assets.githubusercontent.com', 'objects.githubusercontent.com'):
                         raise ValueError('release redirect denied')
                     response = self.client.get(str(location), headers={'Accept': 'application/octet-stream'}, follow_redirects=False)
-                response.raise_for_status()
+                    self.observe(response)
+                self.accepted(response)
                 # Each encrypted object is bounded (manifest is bounded too).
                 if len(response.content) > CHUNK + 1024*1024: raise ValueError('asset too large')
                 target.write_bytes(response.content)
@@ -122,6 +156,8 @@ class GitHubStore:
         if old is not None: return old.json()
         try:
             return self.request('POST', self.base + '/releases', json={'tag_name':tag, 'name':tag, 'draft':False, 'prerelease':True}).json()
+        except GitHubPermanentError:
+            raise
         except (ValueError, httpx.HTTPError):
             old = self.request('GET', self.base + '/releases/tags/' + tag, missing=True)
             if old is None: raise
@@ -129,7 +165,15 @@ class GitHubStore:
 
     def upload(self, release, source):
         sha = digest(source); name = sha + '.age'
-        url = f"https://uploads.github.com/repos/{self.repo}/releases/{release['id']}/assets"
+        # Use GitHub's documented URI template, but authorize the destination
+        # before attaching credentials. Never follow an upload redirect.
+        url = release.get('upload_url','').partition('{')[0]
+        parsed = httpx.URL(url)
+        expected = f"/repos/{self.repo}/releases/{int(release['id'])}/assets"
+        if (parsed.scheme != 'https' or parsed.host != 'uploads.github.com'
+            or parsed.port not in (None,443) or parsed.path != expected
+            or parsed.userinfo or parsed.query or parsed.fragment):
+            raise ValueError('GitHub upload destination denied')
         # Reconcile uncertain creation by immutable ciphertext name, never clobber.
         for attempt in range(3):
             assets = self.assets(release['id'])
@@ -137,8 +181,11 @@ class GitHubStore:
             if match: break
             try:
                 with source.open('rb') as data:
-                    match = self.client.post(url, params={'name':name}, headers={**self.headers, 'Content-Type':'application/octet-stream'}, content=data.read())
-                match.raise_for_status(); match = match.json(); break
+                    match = self.client.post(url, params={'name':name}, headers={**self.headers, 'Content-Type':'application/octet-stream'}, content=data.read(), follow_redirects=False)
+                self.observe(match)
+                self.accepted(match); match = match.json(); break
+            except GitHubPermanentError:
+                raise
             except (httpx.HTTPError, ValueError):
                 if attempt == 2: raise ValueError('github_upload_failed') from None
                 time.sleep(2**attempt)
@@ -167,6 +214,8 @@ class GitHubStore:
             return
         try:
             self.request('PUT', url, json={'message':'Publish encrypted recovery checkpoint', 'content':base64.b64encode(encode(payload)).decode()})
+        except GitHubPermanentError:
+            raise
         except (ValueError, httpx.HTTPError):
             existing = self.request('GET', url, missing=True)
             if existing is None or json.loads(base64.b64decode(existing.json()['content']))['manifest'] != ref: raise

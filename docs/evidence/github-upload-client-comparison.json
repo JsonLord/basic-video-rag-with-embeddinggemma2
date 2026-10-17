@@ -1,0 +1,32 @@
+{
+  "observations": [
+    {
+      "method": "POST",
+      "host": "uploads.github.com",
+      "status": 401,
+      "headers": {
+        "x-github-request-id": "4CD7:31E81D:C5069:E70BE:6AD3D43C",
+        "content-type": "application/json; charset=utf-8",
+        "server": "envoy"
+      },
+      "client_authorization_attached": true,
+      "client": "httpx",
+      "auth_scheme": "token",
+      "credential_source": "GH_TOKEN"
+    },
+    {
+      "client": "gh",
+      "host": "uploads.github.com",
+      "method": "POST",
+      "status": 401,
+      "exit_code": 1,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "server": "envoy",
+        "x-github-request-id": "ADAA:355B8B:2A3FE2:3F6FD8:6AD3D43D"
+      },
+      "credential_source": "GH_TOKEN"
+    }
+  ],
+  "conclusion": "Client-side header attachment confirmed for HTTPX; proxy-side header contents are not observable. Current host-scoped credential propagation remains unverified."
+}

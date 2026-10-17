@@ -1,0 +1,79 @@
+{
+  "observations": [
+    {
+      "method": "GET",
+      "host": "api.github.com",
+      "path": "/user",
+      "credential_source": "GH_TOKEN",
+      "client_authorization_attached": true,
+      "status": 200,
+      "headers": {
+        "x-github-request-id": "9690:32E8B7:DBB396:2C7BB5A:6AD3D3BD",
+        "x-github-api-version-selected": "2022-11-28",
+        "x-ratelimit-limit": "15000",
+        "x-ratelimit-remaining": "14923",
+        "x-ratelimit-resource": "core",
+        "x-accepted-github-permissions": "allows_permissionless_access=true",
+        "content-type": "application/json; charset=utf-8",
+        "server": "envoy"
+      }
+    },
+    {
+      "method": "GET",
+      "host": "api.github.com",
+      "path": "/repos/JsonLord/visual-mentor-backups",
+      "credential_source": "GH_TOKEN",
+      "client_authorization_attached": true,
+      "status": 200,
+      "headers": {
+        "x-github-request-id": "3DF2:319386:45059D:E020B0:6AD3D3BE",
+        "x-github-api-version-selected": "2022-11-28",
+        "x-ratelimit-limit": "15000",
+        "x-ratelimit-remaining": "14922",
+        "x-ratelimit-resource": "core",
+        "x-accepted-github-permissions": "metadata=read",
+        "content-type": "application/json; charset=utf-8",
+        "server": "envoy"
+      }
+    },
+    {
+      "method": "GET",
+      "host": "uploads.github.com",
+      "path": "/",
+      "credential_source": "GH_TOKEN",
+      "client_authorization_attached": true,
+      "status": 302,
+      "headers": {
+        "x-github-request-id": "2E62:2F9DB5:A7FA8:C8D62:6AD3D3BE",
+        "server": "envoy"
+      }
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "path": "/api/spaces/Leon4gr45/openweb",
+      "credential_source": "anonymous",
+      "client_authorization_attached": false,
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "server": "envoy",
+        "via": "1.1 eb382ff675fc4a4551773e2e1657c302.cloudfront.net (CloudFront)"
+      }
+    },
+    {
+      "method": "GET",
+      "host": "leon4gr45-openweb.hf.space",
+      "path": "/api/admin/backup-status",
+      "credential_source": "anonymous",
+      "client_authorization_attached": false,
+      "status": 404,
+      "headers": {
+        "content-type": "application/json",
+        "server": "envoy"
+      },
+      "error_code": "remote_error"
+    }
+  ],
+  "proxy_interior_authorization": "not observable; no credential extraction or interception performed"
+}

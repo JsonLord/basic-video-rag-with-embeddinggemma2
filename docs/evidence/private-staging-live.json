@@ -1,0 +1,8 @@
+{
+  "status": "blocked",
+  "private_boundary_verified": false,
+  "checkpoint_verified": false,
+  "sleep_wake_verified": false,
+  "failure_code": "missing_secure_staging_credentials",
+  "http_events": []
+}

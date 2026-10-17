@@ -1,0 +1,25 @@
+name: Qualify private staging backup manually
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: backup-staging-qualification
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    environment: private-backup-staging
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: python -m pip install httpx==0.28.1
+      - name: Verify private access and a new checkpoint
+        env:
+          VM_SPACE_ID: ${{ vars.STAGING_SPACE_ID }}
+          VM_SPACE_URL: ${{ vars.STAGING_SPACE_URL }}
+          HF_SPACE_TOKEN: ${{ secrets.STAGING_HF_TOKEN }}
+          VM_BACKUP_TRIGGER_TOKEN: ${{ secrets.STAGING_BACKUP_TRIGGER_TOKEN }}
+        run: >-
+          python scripts/qualify_private_space.py
+          --space "$VM_SPACE_ID" --url "$VM_SPACE_URL" --trigger

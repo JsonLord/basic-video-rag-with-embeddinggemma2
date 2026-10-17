@@ -1,0 +1,17 @@
+{
+  "production_space": "Leon4gr45/openweb",
+  "metadata_status": 200,
+  "private": false,
+  "sdk": "docker",
+  "sha": "5a12f98129417859ebddae6d7e74ca4a8d3dd5e4",
+  "runtime_stage": "RUNNING",
+  "hardware": {
+    "current": "cpu-basic",
+    "requested": "cpu-basic"
+  },
+  "production_modified": false,
+  "staging_target": "Leon4gr45/openweb-v2-staging",
+  "anonymous_staging_metadata_status": 401,
+  "staging_exists": "unverified without authorized HF access",
+  "staging_deployed": false
+}

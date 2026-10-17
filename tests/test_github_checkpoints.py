@@ -303,7 +303,7 @@ def test_full_documented_github_http_transport_roundtrip(encrypted,tmp_path,monk
             tag=relative.removeprefix('/releases/tags/')
             return httpx.Response(200,json=releases[tag]) if tag in releases else httpx.Response(404)
         if relative=='/releases' and method=='POST':
-            payload=json.loads(request.content);release={'id':len(releases)+1,'tag_name':payload['tag_name']};releases[release['tag_name']]=release
+            payload=json.loads(request.content);release={'id':len(releases)+1,'tag_name':payload['tag_name'],'upload_url':f'https://uploads.github.com/repos/test/private/releases/{len(releases)+1}/assets{{?name,label}}'};releases[release['tag_name']]=release
             return httpx.Response(201,json=release)
         if relative.startswith('/releases/assets/'):
             asset=int(relative.split('/')[-1])
@@ -319,3 +319,87 @@ def test_full_documented_github_http_transport_roundtrip(encrypted,tmp_path,monk
     assert len(records)==1 and redirects>2 and len(releases)>1
     assert (restored/'data/videos/v1/original').read_bytes()==(data/'videos/v1/original').read_bytes()
     assert all(b'Recovery fixture' not in blob['body'] for blob in blobs.values())
+
+
+@pytest.mark.parametrize('status',[401,403,422])
+def test_upload_permanent_rejections_are_not_retried(tmp_path,status):
+    from vrag.backup.github import GitHubPermanentError
+    events=[];posts=[];cipher=tmp_path/'cipher.age';cipher.write_bytes(b'synthetic encrypted fixture')
+    def server(request):
+        if request.method=='GET':return httpx.Response(200,json=[])
+        posts.append(request)
+        return httpx.Response(status,headers={'x-github-request-id':'TEST:REQUEST','location':'https://example.invalid/?secret=never-log'},json={'message':'never-log-response-body'})
+    store=GitHubStore('test/private',token='never-log-token',client=httpx.Client(transport=httpx.MockTransport(server)),diagnostic=events.append)
+    release={'id':1,'upload_url':'https://uploads.github.com/repos/test/private/releases/1/assets{?name,label}'}
+    with pytest.raises(GitHubPermanentError) as error:store.upload(release,cipher)
+    assert error.value.status==status and len(posts)==1
+    serialized=json.dumps(events)
+    assert 'never-log' not in serialized and events[-1]['headers']['x-github-request-id']=='TEST:REQUEST'
+    assert events[-1]['client_authorization_attached'] is True
+
+
+def test_upload_url_authorized_before_sending_credentials(tmp_path):
+    cipher=tmp_path/'cipher.age';cipher.write_bytes(b'fixture')
+    def forbidden(request):raise AssertionError('request must never leave client')
+    store=GitHubStore('test/private',token='test-token',client=httpx.Client(transport=httpx.MockTransport(forbidden)))
+    for url in ('https://evil.example/repos/test/private/releases/1/assets{?name,label}',
+                'http://uploads.github.com/repos/test/private/releases/1/assets{?name,label}',
+                'https://uploads.github.com/repos/another/repo/releases/1/assets{?name,label}'):
+        with pytest.raises(ValueError,match='destination denied'):store.upload({'id':1,'upload_url':url},cipher)
+
+
+def test_uncertain_transient_upload_is_reconciled_without_duplicate(tmp_path,monkeypatch):
+    cipher=tmp_path/'cipher.age';cipher.write_bytes(b'fixture ciphertext');sha=digest(cipher);posts=[];sleeps=[]
+    def server(request):
+        if request.method=='POST':
+            posts.append(request);return httpx.Response(503)
+        if request.url.path.endswith('/assets'):
+            return httpx.Response(200,json=[] if not posts else [{'id':7,'name':sha+'.age','size':cipher.stat().st_size}])
+        return httpx.Response(200,content=cipher.read_bytes())
+    monkeypatch.setattr('vrag.backup.github.time.sleep',sleeps.append)
+    store=GitHubStore('test/private',token='test-token',client=httpx.Client(transport=httpx.MockTransport(server)))
+    ref=store.upload({'id':1,'upload_url':'https://uploads.github.com/repos/test/private/releases/1/assets{?name,label}'},cipher)
+    assert ref['id']==7 and len(posts)==1 and sleeps==[1]
+
+
+@pytest.mark.asyncio
+async def test_service_does_not_repeat_failed_authentication(monkeypatch,tmp_path):
+    import asyncio
+    from vrag.backup import service
+    from vrag.backup.github import GitHubPermanentError
+    state=tmp_path/'state';state.mkdir();data=tmp_path/'data';data.mkdir()
+    monkeypatch.setenv('VM_BACKUP_ENABLED','true');monkeypatch.setenv('VM_STATE_DIR',str(state))
+    monkeypatch.setattr(service,'roots',lambda:(tmp_path,data,state))
+    attempts=[]
+    class Engine:
+        def capture(self,*args):pass
+        def backup(self,*args):
+            attempts.append(1);raise GitHubPermanentError(401,'uploads.github.com','TEST:AUTH')
+    monkeypatch.setattr(service,'engine',Engine)
+    queue=service.BackupQueue();task=asyncio.create_task(queue.run())
+    try:
+        for _ in range(100):
+            if service.health().get('failure_code')=='github_authentication_failed':break
+            await asyncio.sleep(.01)
+        assert service.health()['failure_code']=='github_authentication_failed' and len(attempts)==1
+    finally:task.cancel();await asyncio.gather(task,return_exceptions=True)
+
+
+def test_private_staging_boundary_probe_requires_privacy_and_separate_token(monkeypatch):
+    from scripts.qualify_private_space import qualify
+    requested=[]
+    def server(request):
+        requested.append(request)
+        if request.url.host=='huggingface.co':return httpx.Response(200,json={'private':True,'runtime':{'stage':'RUNNING'}})
+        token=request.headers.get('x-vm-backup-token')
+        if token=='s'*32:return httpx.Response(200,json={'configured':True})
+        return httpx.Response(401)
+    client=httpx.Client(transport=httpx.MockTransport(server))
+    result=qualify(client,'test/app-staging','https://test-app-staging.hf.space','hf-test','s'*32)
+    assert result['private_boundary_verified'] and not result['sleep_wake_verified']
+    assert result['anonymous_status']==401 and result['wrong_trigger_status']==401
+    count=len(requested)
+    with pytest.raises(ValueError,match='staging'):qualify(client,'Leon4gr45/openweb','https://leon4gr45-openweb.hf.space','hf-test','s'*32)
+    assert len(requested)==count
+    public=httpx.Client(transport=httpx.MockTransport(lambda _:httpx.Response(200,json={'private':False})))
+    with pytest.raises(ValueError,match='not private'):qualify(public,'test/app-staging','https://test-app-staging.hf.space','hf-test','s'*32)

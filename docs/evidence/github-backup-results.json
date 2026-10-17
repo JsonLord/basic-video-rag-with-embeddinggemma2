@@ -39,5 +39,17 @@
   "alternative": {
     "resident_timer": "mock-clock branch and bounded retry/health tests passed",
     "sleeping_space_wake": "not provided or claimed"
+  },
+  "live_qualification_followup": {
+    "backend_passed": 116,
+    "backup_tests_passed": 20,
+    "upload_url": "GitHub-returned template; validated exact destination",
+    "upload_authentication": "401 once; no retry",
+    "upload_clients": "HTTPX Bearer, HTTPX token, native gh all 401 using GH_TOKEN",
+    "proxy_header_forwarding": "not observable; cannot establish strip versus rewrite",
+    "github_recovery": "blocked; zero assets and no committed checkpoint",
+    "production_space_private": false,
+    "private_staging": "prepared, not deployed; missing HF credential",
+    "production_scheduling_activated": false
   }
 }

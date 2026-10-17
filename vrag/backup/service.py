@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import time
 
-from .github import Checkpoints, GitHubStore, state_lock
+from .github import Checkpoints, GitHubStore, GitHubPermanentError, state_lock
 
 
 def configured():
@@ -138,6 +138,8 @@ class BackupQueue:
                             result=await asyncio.to_thread(backup.backup,stage,self.update)
                         self.update(last_success=result,pending_uploads=0)
                         break
+                    except GitHubPermanentError:
+                        raise
                     except Exception:
                         if attempt==2:raise
                         await asyncio.sleep(2**attempt)
@@ -161,6 +163,8 @@ class BackupQueue:
                         result=await asyncio.to_thread(backup.restore,Path(temp)/'recovered')
                     self.update(last_recovery_test=result)
             except asyncio.CancelledError:raise
+            except GitHubPermanentError as error:
+                self.update(failure_code=error.code)
             except Exception:
                 # Never expose exception text containing provider credentials.
                 self.update(failure_code='backup_or_recovery_failed',last_recovery_test={'verified':False,'tested_at':time.time()} if recovery else self.report.get('last_recovery_test'))

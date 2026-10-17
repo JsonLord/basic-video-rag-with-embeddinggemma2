@@ -135,3 +135,139 @@ reviewed namespaces before a year shard reaches 1000 records. No deletion is aut
 10. Obtain a distinct production deployment/scheduling approval before applying any
     changes to `Leon4gr45/openweb`. Retain a tested previous source and recovery
     checkpoint; rollback into an isolated root, never overwrite active data.
+
+
+## Subsequent live qualification (17 October 2026)
+
+This section supersedes the earlier network-policy observations above. Fixes are
+based on application `30dbccac29e8056ccffff98f45247515f32edaad` and backup tooling
+`96e6391b303e82ca821937c57da5e03776f3eedc`. No production changes or workflow activation
+were made. Existing checkpoints/releases were neither deleted nor overwritten.
+
+### Phase 1: host-specific 401 diagnosis
+
+Using the **same GH_TOKEN source**, GitHub user/private repository reads return
+200 and new disposable release creation returns 201 on `api.github.com`. The
+uploader now consumes the returned `upload_url`, removes its URI-template suffix,
+and validates HTTPS, exact uploads host, expected repository/release path, no
+userinfo/query/fragment and no redirects before attaching Authorization.
+
+The resulting POST to `uploads.github.com` returns **401**, request ID
+`FD3D:10E5C1:CD4E9:E9D17:6AD3D414`. A separate supported `token` authorization-scheme
+probe returns 401 (`4CD7:31E81D:C5069:E70BE:6AD3D43C`); the native gh CLI using the
+same credential source also returns 401 (`ADAA:355B8B:2A3FE2:3F6FD8:6AD3D43D`). The
+upload-host root's 302 is not an authentication test and is not counted as success.
+
+HTTPX confirms Authorization is attached before the outbound proxy. API responses
+include GitHub request IDs; the server response header is `envoy`. There is no
+available trusted proxy trace that shows the forwarded Authorization value. These
+observations localize the rejection to authentication at the upload destination;
+they do **not** establish whether the proxy stripped, rewrote, or failed to inject
+a credential. No proxy-held credentials were extracted, and no direct connection,
+alternate API route or TLS bypass was attempted. Both HTTPX and gh fail, so this
+is not demonstrated to be an HTTPX-only request-format issue. The declared scoped
+VM_BACKUP_GITHUB_TOKEN binding still has no saved credential, and its variable is
+absent in the running environment. A valid credential on both destinations remains
+the external prerequisite; changing upload_url alone did not fix the 401.
+
+401 and other permanent 4xx requests now raise sanitized GitHubPermanentError,
+without blind upload or outer checkpoint retries. The health report distinguishes
+`github_authentication_failed` from a generic retry exhaustion. Transient upload
+failures still reconcile the immutable asset name before retrying; a test verifies
+that an uncertain 503 with an actually created asset does not produce a duplicate.
+Sanitized diagnostics record method/host/status/GitHub request ID and allowlisted
+response headers, never Authorization values, request bodies, response payloads or
+signed Location URLs. Tests cover destination authorization and credential stripping
+on signed downloads.
+
+Evidence:
+
+- [Host probes](evidence/github-auth-probe.json)
+- [HTTPX / gh comparison](evidence/github-upload-client-comparison.json)
+- [Latest live drill](evidence/github-recovery-live.json)
+
+### Phase 2: attempted real recovery
+
+Namespace `test-recovery-20261017-937e26ae` contains a newly created, uncommitted
+release only. Its first encrypted upload failed once with 401. A read-only check
+confirmed **zero release assets** and no checkpoint namespace (Contents API 404).
+No successful live recovery, incremental checkpoint or file-hash comparison is
+claimed. The report is explicitly `status=blocked`, `recovery_verified=false`.
+All prior recovery successes remain real age/SQLite/FFmpeg with **mocked GitHub**.
+
+The live drill now persists sanitized diagnostics even on authentication failure.
+After credentials work it is ready to record both committed checkpoint IDs, asset
+counts, full restored file hashes before application startup, unchanged incremental
+dedup, SQLite integrity/logical rows, fresh-process Library/Search/config/index,
+authorized media Range and anonymous media denial, and actual FFmpeg media decode.
+Search uses a deterministic synthetic query vector, not a live embedding provider;
+the recovered index and application Search route perform real retrieval. The test
+source and capture stage are deleted before restore, and recovery uses only GitHub
+assets plus the isolated age key. Ephemeral test key destruction is intentional;
+these disposable points are not production recovery assets.
+
+### Phase 3: private HF staging preparation
+
+Network reachability now works for the supplied production origin and HF metadata.
+An anonymous HF metadata response reports **Leon4gr45/openweb private=false**, Docker,
+CPU Basic, RUNNING, revision `5a12f98129417859ebddae6d7e74ca4a8d3dd5e4`. Its backup-status
+route returns 404. This is not a private-boundary qualification and its privacy or
+deployment was not changed. Anonymous metadata access to the proposed separate
+staging target returns 401; existence/access cannot be concluded without credentials.
+
+A concrete [private staging package](../deploy/hf-staging/README.md), restricted
+probe `scripts/qualify_private_space.py`, and manual-only inactive
+`qualify-private-staging.yml` are prepared. The probe rejects production targets,
+requires private metadata, verifies anonymous denial plus correct HF/scoped-trigger
+access and wrong-trigger rejection, and can run the bounded checkpoint coordinator.
+It records an actual Actions run URL when executed on a runner and only claims a
+sleep/wake test when initial runtime was sleeping and the authenticated route plus
+new checkpoint succeeded. No restart/resume/hardware API is called.
+
+The present task authorizes private staging qualification; it does not authorize
+production changes. No HF credential is available, so staging deployment, authorized
+HF access, actual runner dispatch and sleep/wake testing could not proceed. This is
+a missing capability, not a request to reconfirm the task. The manual test workflow
+and 12-hour production workflow both remain outside `.github/workflows`.
+
+Evidence: [HF observation](evidence/hf-space-observation.json) and
+[staging probe result](evidence/private-staging-live.json).
+
+### Exact remaining credential and activation steps
+
+1. In secure cloud environment settings, supply **VM_BACKUP_GITHUB_TOKEN**: a
+   fine-grained GitHub token authorized only for JsonLord/visual-mentor-backups,
+   **Contents read/write and Metadata read**. Configure proxy substitution for both
+   `api.github.com` and `uploads.github.com`; signed release downloads deliberately
+   receive no bearer token. Apply the saved environment configuration and confirm
+   both hosts with the same binding. Never paste values or expose the proxy-held
+   token. The existing integration's API access does not prove upload authentication.
+2. Rerun `AGE_BIN=/path/to/age python tests/live_github_recovery.py`. Require a
+   passed evidence file with real asset readback, two committed checkpoints,
+   incremental manifest-only upload, all pre-startup file hashes equal, and fresh
+   application/media checks. Until then the sole-store live recovery gate fails.
+3. Provision an HF identity with write access to the **separate private staging**
+   repository. Repository creation requires rights in the Leon4gr45 namespace; if
+   avoiding broad creation rights, create the private Docker staging repository
+   first and issue a token limited to its contents/settings. Use the staging package
+   and existing deployment allowlist, not a production upload. Set staging backup
+   namespace, protected key/trigger and independent role tokens in HF settings.
+4. Give the coordinator a **separate read-only HF token** authorized to access the
+   private staging repository and its authenticated app route, plus its own staging
+   trigger token. Add the exact staging origin to allowed network/credential
+   destinations. No paid inference or production-repository write scope is needed.
+   Run the private probe locally, then install only the reviewed manual workflow
+   with its `private-backup-staging` environment, STAGING_SPACE_ID/URL variables and
+   STAGING_HF_TOKEN / STAGING_BACKUP_TRIGGER_TOKEN secrets. Keep workflow permissions
+   at Contents read; GitHub writes occur inside the Space with its scoped writer.
+5. Dispatch the manual workflow, record its run URL and new committed point, then
+   test a naturally sleeping staging instance through the same authenticated route.
+   Destroy only staging working state and verify clean startup recovery. Do not
+   equate an awake run, a local mock, or enqueue acceptance with wake/schedule success.
+6. Leave the production timer inactive and approval guards unset. Production Space
+   deployment or production scheduling still requires explicit approval.
+
+Current follow-up regression: **116 backend tests passed** (20 backup tests),
+including permanent-error retry suppression, transient reconciliation, sanitized
+headers and private staging boundary mocks. These new tests do not convert the
+blocked live gates into passes. No application UI or inference feature was redesigned.
