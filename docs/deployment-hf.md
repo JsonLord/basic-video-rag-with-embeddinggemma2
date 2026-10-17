@@ -37,17 +37,18 @@ Use HF Settings / Secrets (do not put values in YAML or browser bundles):
   and backup status only. This is a shared-role app, not per-person accounts/SSO.
 - `VM_ALLOWED_ORIGINS=https://<staging-app-host>`: exact external origin.
 - `VM_ALLOWED_HOSTS`: exact approved inference hostnames only.
-- `VRAG_DATA=/app/data`, `VM_STATE_DIR=/app/data/state`; default index under
-  `/app/data/index` so durable snapshot coverage includes it. Do not configure an
-  uncovered index path outside the approved durable source layout.
+- `VRAG_DATA=/app/work/data`, `VM_STATE_DIR=/app/work/state`; default index under
+  `/app/work/data/index`. Configure GitHub-native backup and protected age identity
+  as documented in backup-restore.md; the working disk remains ephemeral.
 - `LAYA_BASE_URL` is the router root; OpenAI-compatible VLM/embedding/Whisper
   base URLs generally include `/v1`. Credential environment references are the
   exact `api_key_secret` fields in the reviewed profile. Do not assume all endpoints
   share a protocol or that NVIDIA's public API implements this `/detect` gateway.
-- `VM_BACKUP_STATUS_FILE`: optional sanitized trusted monitor report refreshed from
-  approved external storage. No timer or unauthenticated backup export is exposed.
+- Backup settings, protected trigger and empty-state startup recovery: see
+  [backup-restore.md](backup-restore.md). No plaintext export is exposed.
 - Decide whether answer-history persistence (`VRAG_SAVE_ANSWERS`) is permitted.
-  It is excluded from backup by default and may contain private research text.
+  Persisted answer history is included in encrypted GitHub checkpoints; review its
+  privacy scope and opt out of local history if required.
 
 All profile examples are disabled until model IDs, endpoints, capabilities,
 privacy trust and credentials are explicitly verified. Active placeholder IDs are
@@ -58,15 +59,15 @@ through Import may be sent to the selected authorized providers.
 ## Mandatory approval and external gates
 
 1. Approve a **private staging** Space (proposed `Leon4gr45/openweb-v2-staging`),
-   storage budget and durable backing-store integration. Obtain a fine-grained HF
+   GitHub backup storage budget and recovery integration. Obtain a fine-grained HF
    identity limited to intended repos. The current environment has no configured HF
    identity; openweb source, visibility, settings and screenshots were not inspected.
 2. Before touching production, snapshot the existing Space Git revision, settings
    inventory (secret names only), private access policy and all data. Verify restore.
-3. Establish external durable media/state storage and its immutable snapshot publisher
-   before treating local state as durable. HF CPU Basic has 50GB ephemeral disk; no
-   persistent mount is assumed. Complete the separate private GitHub backup workflow
-   run, media verification and off-Space restore described in backup-restore.md.
+3. Qualify GitHub-native encrypted release assets and repository checkpoints as the
+   sole recovery store. HF CPU Basic has 50GB ephemeral disk; no persistent mount
+   or external object store is required. Complete the live GitHub destructive
+   recovery drill and private Actions sleep/wake test in backup-restore.md.
 4. Review `docs/v2-evidence/main/` against current Playwright screenshots. Confirm
    original workflows remain recognizable at desktop/laptop/tablet/mobile sizes.
 5. With explicit staging approval, create a private Docker Space and upload the
@@ -99,15 +100,15 @@ api.upload_folder(
    selection, permission denial/contention, disconnect, hidden-tab cleanup and
    stale results. Verify each real provider and costs using approved media only.
    Run real upload→Whisper→segments→embeddings→Search/Ask and verify citations/playback.
-8. Recreate staging and restore from external state. Confirm actual recent GitHub
-   backup and separate object-store assets survive Space recreation. Local tests
-   alone do not pass this gate.
+8. Recreate staging and restore all media/index/configuration from GitHub alone
+   with the protected age key. Confirm a real recent checkpoint survives Space
+   recreation. Mock transport tests alone do not pass this gate.
 9. Present actual staging screenshots, provider test table, storage/backup/restore
    history and performance; obtain explicit approval before changing openweb.
 
 ## Controlled production switch / rollback
 
-Save the existing production Space commit and tested external snapshot IDs before
+Save the existing production Space commit and tested GitHub checkpoint IDs before
 upload. Obtain UI and deployment approval. Deploy the reviewed v2 source using the
 same procedure targeted at openweb; do not merge the deployment PR wholesale.
 Keep previous image/source and compatible snapshot available. On failure, pause

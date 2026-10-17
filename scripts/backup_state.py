@@ -1,9 +1,17 @@
-"""Run only against an immutable durable-store snapshot, outside the HF process."""
-import argparse,json,sys
+"""Checkpoint the GitHub-configured state. Offline only: stop all app writers first.
+The running application uses its protected trigger and shared snapshot lock.
+"""
+import argparse
+import json
 from pathlib import Path
+import sys
+import tempfile
 sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
-from vrag.backup import snapshot
-p=argparse.ArgumentParser();p.add_argument('--data-root',type=Path,required=True);p.add_argument('--state-root',type=Path,required=True);p.add_argument('--assets-root',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--recipient',required=True);p.add_argument('--source-snapshot-id',required=True);p.add_argument('--source-revision',default='unknown')
+from vrag.backup.service import engine,roots
 if __name__=='__main__':
-    try:print(json.dumps(snapshot(**vars(p.parse_args()))))
-    except Exception:sys.exit('Backup failed: verify durable source, asset coverage, size budget and encryption configuration. No success recorded.')
+    parser=argparse.ArgumentParser();parser.add_argument('--offline-writers-stopped',action='store_true',required=True)
+    parser.parse_args()
+    backup=engine();_,data,state=roots()
+    with tempfile.TemporaryDirectory(prefix='vm-offline-capture-') as temp:
+        stage=Path(temp);backup.capture(data,state,stage)
+        print(json.dumps(backup.backup(stage)))

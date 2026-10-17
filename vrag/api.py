@@ -26,9 +26,14 @@ async def lifespan(app):
     cleanup = asyncio.create_task(session_cleanup())
     from .jobs import worker
     jobs_task = asyncio.create_task(worker())
+    from .backup.service import configured, queue
+    backup_task = asyncio.create_task(queue.run()) if configured() else None
     try:
         yield
     finally:
+        if backup_task:
+            backup_task.cancel()
+            await asyncio.gather(backup_task, return_exceptions=True)
         cleanup.cancel()
         jobs_task.cancel()
         await asyncio.gather(cleanup, jobs_task, return_exceptions=True)

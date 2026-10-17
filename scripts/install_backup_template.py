@@ -1,17 +1,14 @@
-"""Prepare a reviewable local private-repository checkout. Never creates/pushes a repo."""
-import argparse,shutil
+"""Export inactive GitHub coordinator tooling; never deploy or activate it."""
+import argparse
+import shutil
 from pathlib import Path
-p=argparse.ArgumentParser();p.add_argument('destination',type=Path)
-if __name__=='__main__':
-    dest=p.parse_args().destination
-    if dest.exists():raise SystemExit('Destination must be new')
+if __name__ == '__main__':
+    parser=argparse.ArgumentParser();parser.add_argument('destination',type=Path)
+    destination=parser.parse_args().destination
+    if destination.exists():raise SystemExit('destination must be new')
     root=Path(__file__).resolve().parent.parent
-    shutil.copytree(root/'deploy/backup-repository',dest)
-    for folder in ('vrag/backup','config'):
-        shutil.copytree(root/folder,dest/folder,ignore=shutil.ignore_patterns('__pycache__','examples'))
-    (dest/'vrag/__init__.py').touch()
-    (dest/'scripts').mkdir()
-    for name in ('backup_state.py','restore_state.py','fetch_backup_source.py','check_backup.py','prune_backups.py'):
-        shutil.copyfile(root/'scripts'/name,dest/'scripts'/name)
-    shutil.copyfile(root/'docs/backup-restore.md',dest/'README.md')
-    print('Local template ready; private repo creation, credential provisioning and activation require approval.')
+    shutil.copytree(root/'deploy/backup-repository',destination)
+    (destination/'scripts').mkdir(exist_ok=True)
+    shutil.copyfile(root/'scripts/coordinate_backup.py',destination/'scripts/coordinate_backup.py')
+    shutil.copyfile(root/'docs/backup-restore.md',destination/'README.md')
+    print('Inactive coordinator exported; activation and production deployment remain separate.')

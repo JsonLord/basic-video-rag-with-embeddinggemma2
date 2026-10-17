@@ -20,11 +20,14 @@ class ConfigStore:
                 self.version = len(self.history)
     def snapshot(self):
         # Deep copy prevents nested mutation of in-flight snapshots.
+        from .backup.service import queue
+        queue.request()
         return self.version, self.history[-1].model_copy(deep=True)
     async def apply(self, config, expected):
         if not self.path:
             raise ValueError('VM_STATE_DIR is required for configuration updates; defaults are read-only')
-        async with self.lock:
+        from .backup.github import state_lock
+        async with state_lock, self.lock:
             if expected != self.version:
                 raise ValueError('configuration changed; reload before applying')
             if len(self.history) >= 100:
@@ -54,6 +57,8 @@ class ConfigStore:
                 if os.path.exists(tmp):
                     os.unlink(tmp)
             self.history, self.version = history, len(history)
+        from .backup.service import queue
+        queue.request()
         return self.version
 
 store = ConfigStore()

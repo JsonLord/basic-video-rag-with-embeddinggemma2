@@ -25,5 +25,5 @@ test-results/
 *.agekey
 *.key
 rclone.conf
-backups/
+/backups/
 snapshots/

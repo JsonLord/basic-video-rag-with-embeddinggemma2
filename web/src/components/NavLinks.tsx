@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/experiments", label: "Experiments" },
   { href: "/architecture", label: "Architecture" },
   { href: "/models", label: "Models & Routing" },
+  { href: "/backups", label: "Backups" },
 ];
 
 /** The links with the current page highlighted; `path` null renders them all inactive. */

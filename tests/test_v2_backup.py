@@ -96,11 +96,11 @@ def test_retention_preserves_last_restore_qualified_copy():
 def test_workflow_is_private_template_and_schedule_is_exact():
     import yaml
     root=Path(__file__).resolve().parent.parent
-    source=root/'deploy/backup-repository/.github/workflows/backup-12h.yml'
+    source=root/'deploy/backup-repository/inactive-workflows/backup-12h.yml'
     config=yaml.load(source.read_text(),Loader=yaml.BaseLoader)
     assert config['on']['schedule'][0]['cron']=='17 0,12 * * *'
     assert 'workflow_dispatch' in config['on']
     assert config['concurrency']['cancel-in-progress']=='false'
-    assert config['jobs']['snapshot']['if']=="vars.BACKUPS_APPROVED == 'true'"
+    assert config['jobs']['checkpoint']['if']=="vars.BACKUPS_APPROVED == 'true' && vars.COORDINATOR_VALIDATED == 'true'"
     assert not (root/'.github/workflows/backup-12h.yml').exists()
-    assert 'Verify private destination' in [s.get('name') for s in config['jobs']['snapshot']['steps']]
+    assert 'Verify private Space reachability and completed checkpoint' in [s.get('name') for s in config['jobs']['checkpoint']['steps']]

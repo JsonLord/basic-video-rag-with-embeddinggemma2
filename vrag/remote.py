@@ -70,10 +70,12 @@ async def _answer(question, view, dim, k, use_video, use_audio):
             'provider_results': statuses, 'timing': {'retrieve_s': retrieve, 'generate_s': time.monotonic()-start-retrieve},
             'created_at': datetime.now(timezone.utc).isoformat()}
     if os.environ.get('VRAG_SAVE_ANSWERS', 'true').lower() == 'true':
-        history = DATA / 'answers' / 'history.jsonl'
-        history.parent.mkdir(parents=True, exist_ok=True)
-        with history.open('a') as f:
-            f.write(json.dumps(result) + '\n')
+        from .backup.github import state_lock
+        async with state_lock:
+            history = DATA / 'answers' / 'history.jsonl'
+            history.parent.mkdir(parents=True, exist_ok=True)
+            with history.open('a') as f:
+                f.write(json.dumps(result) + '\n')
     return result
 
 def answer(question, view='text', dim=768, k=4, use_video=True, use_audio=False):

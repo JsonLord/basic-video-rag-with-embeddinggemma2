@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-17",
+  "backend": {
+    "passed": 109,
+    "encryption": "real age CLI",
+    "sqlite": "real online snapshots",
+    "media": "real FFmpeg-generated video",
+    "github_transport": "mocked for successful recovery tests"
+  },
+  "browser": {
+    "existing_parity_camera_routing_passed": 17,
+    "backup_administration_passed": 2,
+    "providers_and_hardware": "mocked or simulated"
+  },
+  "frontend": {
+    "production_build": "passed",
+    "lint_errors": 0,
+    "existing_lint_warnings": 1
+  },
+  "live_github": {
+    "private_repository_verified": true,
+    "release_creation": "passed",
+    "release_tag": "vm-test-recovery-20261017-deae94ff-20261017T173832-f8cd66db742745159168b741ea1a751e",
+    "asset_upload": "blocked: HTTP 401 Bad credentials from uploads.github.com",
+    "committed_recovery_checkpoints": 0,
+    "complete_github_only_recovery": "NOT VERIFIED",
+    "existing_backups_overwritten": false
+  },
+  "private_space": {
+    "identity": "Leon4gr45/openweb",
+    "origin": "https://leon4gr45-openweb.hf.space",
+    "probe": "blocked by network proxy policy",
+    "hf_test_credential_present": false,
+    "actions_private_reachability": "NOT VERIFIED",
+    "sleep_wake": "NOT VERIFIED",
+    "production_scheduling_activated": false,
+    "deployment_modified": false
+  },
+  "alternative": {
+    "resident_timer": "mock-clock branch and bounded retry/health tests passed",
+    "sleeping_space_wake": "not provided or claimed"
+  }
+}

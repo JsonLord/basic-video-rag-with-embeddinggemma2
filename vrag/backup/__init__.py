@@ -1,8 +1,8 @@
-"""Encrypted, bounded snapshots with explicit asset coverage and isolated restore.
+"""Legacy format-1 compatibility and shared age/SQLite helpers.
 
-Only operate on an operator-created immutable durable-store snapshot. Individual
-SQLite databases use the online backup API; cross-file consistency requires that
-immutable source boundary, not an arbitrary copy of a running filesystem.
+The active GitHub-only format-2 runtime lives in github.py and service.py.
+The old snapshot/restore functions below are retained to validate existing format-1
+archives; their external-asset contract is not used by the current runtime.
 """
 import hashlib
 import io

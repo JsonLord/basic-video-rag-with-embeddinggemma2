@@ -6,6 +6,16 @@ import time
 from pathlib import Path
 
 root = Path(__file__).resolve().parent.parent
+# Recovery must precede imports of ConfigStore, index and queue/database startup.
+if os.environ.get('VM_BACKUP_ENABLED') == 'true':
+    import sys
+    sys.path.insert(0, str(root))
+    recovery_root = Path(os.environ.get('VM_RECOVERY_ROOT', '/app/work'))
+    os.environ.setdefault('VRAG_DATA', str(recovery_root / 'data'))
+    os.environ.setdefault('VM_STATE_DIR', str(recovery_root / 'state'))
+    from vrag.backup.service import bootstrap
+    bootstrap()
+
 children = []
 def stop(*_):
     for p in children:

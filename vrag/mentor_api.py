@@ -392,19 +392,30 @@ def clear_media_access():
     response.delete_cookie('vm-media',path='/media',secure=True,httponly=True,samesite='strict')
     return response
 
+def backup_coordinator(request: Request):
+    expected=os.environ.get('VM_BACKUP_TRIGGER_TOKEN','')
+    value=request.headers.get('x-vm-backup-token','')
+    if expected and len(expected)>=32 and hmac.compare_digest(value.encode(),expected.encode()):
+        if request.headers.get('origin'):raise HTTPException(403,'coordinator does not accept browser origins')
+        return 'backup-coordinator'
+    return admin(request)
+
 @router.get('/api/admin/backup-status')
-def backup_status(owner=Depends(admin)):
-    import json
-    from pathlib import Path
-    from .backup import stale_status
-    # Only an operator-configured, external monitoring report; inference YAML cannot change it.
-    source=Path(os.environ['VM_BACKUP_STATUS_FILE']) if os.environ.get('VM_BACKUP_STATUS_FILE') else None
-    report=json.loads(source.read_text()) if source and source.is_file() else {}
-    permitted={'last_attempt','last_verified_success','workflow_run_id','private_repository_verified','restore_verified','failure_code','coverage_verified'}
-    safe={key:value for key,value in report.items() if key in permitted and isinstance(value,(bool,int,float,type(None))) }
-    # Failure reasons are machine codes, never remote exception text or credentials.
-    if report.get('failure_code') in ('source_unavailable','backup_failed','restore_unverified','stale','upload_failed'):safe['failure_code']=report['failure_code']
-    return {**stale_status(safe),'manual_trigger':'Run workflow_dispatch in the approved private backup repository. See docs/backup-restore.md.'}
+def backup_status(owner=Depends(backup_coordinator)):
+    from .backup.service import health
+    return health()
+
+@router.post('/api/admin/backup')
+async def backup_trigger(owner=Depends(backup_coordinator)):
+    from .backup.service import queue
+    if not queue.request():raise HTTPException(409,'backup not configured')
+    return {'accepted':True,'completed':False}
+
+@router.post('/api/admin/backup/recovery-test')
+async def backup_recovery_test(owner=Depends(admin)):
+    from .backup.service import queue
+    if not queue.request(recovery=True):raise HTTPException(409,'backup not configured')
+    return {'accepted':True,'completed':False,'isolated':True}
 
 class SessionRoutingInput(Strict):
     config_version: int = Field(ge=1)

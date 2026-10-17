@@ -35,3 +35,13 @@ Neither test suite starts DGX/model services or sends production/camera data.
 Docker qualification starts only its own ephemeral network-isolated containers,
 publishes no ports, and cleans up its own volumes/containers. Private Space and
 backup workflow activation require the runbooks' explicit approvals.
+
+## GitHub-native backup refactor
+
+The subsequent backup qualification and unresolved live gates are recorded in
+[github-backup-migration.md](github-backup-migration.md). Successful recovery unit
+and subprocess tests use real age/SQLite/FFmpeg with mocked GitHub transport; they
+are not a successful live GitHub or private-HF scheduling integration test.
+Opt-in live drill: `AGE_BIN=/path/to/age python tests/live_github_recovery.py`.
+It writes only a unique test namespace and refuses to claim success unless a fresh
+application recovers all file hashes after destruction of its source/stage.

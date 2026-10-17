@@ -144,7 +144,12 @@ async def worker():
     while True:
         with connect() as db:job=db.execute("SELECT * FROM jobs WHERE status='queued' ORDER BY created LIMIT 1").fetchone()
         if job:
-            try:await run_job(dict(job))
+            try:
+                from .backup.github import state_lock
+                async with state_lock:
+                    await run_job(dict(job))
+                from .backup.service import queue
+                queue.request()
             except asyncio.CancelledError:
                 # Shutdown preserves retryable queue state; user cancellation is durable.
                 check=False
@@ -161,7 +166,12 @@ def jobs(owner=Depends(user)):return listing()
 async def upload(request:Request,filename:str=Query('Upload',max_length=200),owner=Depends(user)):
     if upload_slots.locked():raise HTTPException(429,'two uploads already in progress')
     async with upload_slots:
-        return await _upload(request,filename)
+        from .backup.github import state_lock
+        async with state_lock:
+            result = await _upload(request,filename)
+        from .backup.service import queue
+        queue.request()
+        return result
 
 async def _upload(request,filename):
     if sum(j['status'] in ('queued','running') for j in listing())>=10:raise HTTPException(429,'queue full')
