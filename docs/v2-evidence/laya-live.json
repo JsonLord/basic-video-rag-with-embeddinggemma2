@@ -1,0 +1,70 @@
+{
+  "metadata": {
+    "/health": {
+      "status": "ok"
+    },
+    "/ready": {
+      "status": "ready",
+      "backends": {
+        "laya": {
+          "ready": true
+        },
+        "laya-vision": {
+          "ready": true,
+          "placeholder": false
+        }
+      }
+    },
+    "/v1/info": {
+      "service": "system-one",
+      "inference_endpoint": "/v1/system-one",
+      "routing": {
+        "text_or_structured": "laya",
+        "visual": "laya-vision"
+      },
+      "backends": {
+        "laya": {
+          "device": "cpu",
+          "generative": false,
+          "model": "receptron/laya-onnx",
+          "threads": 2,
+          "max_concurrency": 4
+        },
+        "laya-vision": {
+          "device": "cpu",
+          "generative": false,
+          "model": "thaitea/laya-vision",
+          "parameters": "201M",
+          "runtime": "python/laya",
+          "threads": 1,
+          "max_concurrency": 1,
+          "max_queue": 8
+        }
+      },
+      "capabilities": [
+        "choice",
+        "score",
+        "noul",
+        "vision"
+      ]
+    }
+  },
+  "synthetic_inference_executed": true,
+  "elapsed_s": 22.632,
+  "output": {
+    "detections": [],
+    "decisions": [
+      {
+        "action": "visual_assessment",
+        "reason": "Image inspectability probability: 0.3431 (Laya noul score; advisory, not a spatial detection).",
+        "source": "laya"
+      }
+    ],
+    "text": "",
+    "warnings": [],
+    "embedding": null
+  },
+  "authorization_header_sent": true,
+  "authentication_enforcement_tested": false,
+  "tested_at": "2026-10-17"
+}

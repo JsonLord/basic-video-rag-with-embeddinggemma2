@@ -1,0 +1,22 @@
+{
+  "image_id": "sha256:51259fc8221de63f5b4dfaf9e247e64e1496806ca88ca72f85ec243fae1ef1a3",
+  "startup_seconds": 13.009,
+  "network": "none",
+  "published_ports": [],
+  "limits": "2 CPUs / 16 GiB",
+  "checks": {
+    "media_range_and_cookie": "passed",
+    "authentication": "passed",
+    "csrf_origin": "passed",
+    "config_apply_rollback": "passed",
+    "session_ownership": "passed",
+    "disabled_inference": "503 without local fallback",
+    "uid": 1000,
+    "forbidden_packages": [],
+    "model_weights": [],
+    "gpu_devices": []
+  },
+  "persistent_volume": {
+    "recreated_container_config_version": 4
+  }
+}

@@ -11,6 +11,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   monitor:
+    if: vars.BACKUPS_APPROVED == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

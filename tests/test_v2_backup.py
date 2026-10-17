@@ -101,5 +101,6 @@ def test_workflow_is_private_template_and_schedule_is_exact():
     assert config['on']['schedule'][0]['cron']=='17 0,12 * * *'
     assert 'workflow_dispatch' in config['on']
     assert config['concurrency']['cancel-in-progress']=='false'
+    assert config['jobs']['snapshot']['if']=="vars.BACKUPS_APPROVED == 'true'"
     assert not (root/'.github/workflows/backup-12h.yml').exists()
     assert 'Verify private destination' in [s.get('name') for s in config['jobs']['snapshot']['steps']]

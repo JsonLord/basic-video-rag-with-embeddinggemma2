@@ -1,0 +1,120 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.89kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 396B done
+#4 DONE 0.0s
+
+#5 [web 1/6] FROM docker.io/library/node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5
+#5 DONE 0.0s
+
+#6 [runtime 1/6] FROM docker.io/library/python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258
+#6 DONE 0.0s
+
+#7 [internal] load build context
+#7 transferring context: 24.00kB done
+#7 DONE 0.0s
+
+#8 [web 3/6] COPY web/package*.json ./
+#8 CACHED
+
+#9 [web 2/6] WORKDIR /build/web
+#9 CACHED
+
+#10 [web 4/6] RUN --mount=type=secret,id=build_ca if [ -f /run/secrets/build_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/build_ca; fi; npm ci --no-audit --no-fund
+#10 CACHED
+
+#11 [web 5/6] COPY web/ ./
+#11 DONE 11.3s
+
+#12 [web 6/6] RUN npm run build
+#12 2.338
+#12 2.338 > web@0.1.0 build
+#12 2.338 > next build
+#12 2.338
+#12 2.710 ▲ Next.js 16.4.0 (Turbopack)
+#12 2.748 ✓ Running next.config.ts took 36ms
+#12 2.765 - Cache Components enabled
+#12 2.765 - Partial Prefetching enabled
+#12 2.765 - Experiments (use with caution):
+#12 2.765   · proxyClientMaxBodySize: "65mb"
+#12 2.765   · proxyTimeout: 300000
+#12 2.765
+#12 2.785   Creating an optimized production build ...
+#12 9.207 ✓ Compiled successfully in 6.4s
+#12 9.211   Running TypeScript ...
+#12 12.98   Finished TypeScript in 3.8s ...
+#12 12.98   Collecting page data using 4 workers ...
+#12 13.54   Generating static pages using 4 workers (0/11) ...
+#12 13.91   Generating static pages using 4 workers (2/11)
+#12 13.95   Generating static pages using 4 workers (5/11)
+#12 13.95   Generating static pages using 4 workers (8/11)
+#12 14.04 ✓ Generating static pages using 4 workers (11/11) in 501ms
+#12 14.05   Finalizing page optimization ...
+#12 14.22
+#12 14.22 Route (app)
+#12 14.22 ┌ ○ /
+#12 14.22 ├ ○ /_not-found
+#12 14.22 ├ ○ /architecture
+#12 14.22 ├ ○ /ask
+#12 14.22 ├ ○ /experiments
+#12 14.22 ├ ○ /live
+#12 14.22 ├ ○ /models
+#12 14.22 ├ ○ /search
+#12 14.22 └   /videos/[id]
+#12 14.22   └ ◐ /videos/[id]
+#12 14.22
+#12 14.22
+#12 14.22 ○  (Static)             prerendered as static content
+#12 14.22 ◐  (Partial Prerender)  prerendered as static HTML with dynamic server-streamed content
+#12 14.22
+#12 DONE 14.3s
+
+#13 [bundle 1/6] COPY vrag /app/vrag
+#13 CACHED
+
+#14 [bundle 2/6] COPY config /app/config
+#14 CACHED
+
+#15 [bundle 3/6] COPY scripts/cloud-start.py /app/scripts/cloud-start.py
+#15 CACHED
+
+#16 [bundle 4/6] COPY --from=web /build/web/.next/standalone /app/web/.next/standalone
+#16 DONE 0.1s
+
+#17 [bundle 5/6] COPY --from=web /build/web/.next/static /app/web/.next/standalone/.next/static
+#17 DONE 0.1s
+
+#18 [bundle 6/6] COPY --from=web /build/web/public /app/web/.next/standalone/public
+#18 DONE 0.1s
+
+#19 [runtime 4/6] RUN --mount=type=secret,id=build_ca     export http_proxy="$HTTP_PROXY" https_proxy="$HTTPS_PROXY";     if [ -f /run/secrets/build_ca ]; then export PIP_CERT=/run/secrets/build_ca; fi;     apt-get update && apt-get install -y --no-install-recommends ca-certificates libatomic1 ffmpeg age &&     pip install --no-cache-dir -r requirements-runtime.txt &&     rm -rf /var/lib/apt/lists/* &&     useradd -m -u 1000 mentor && mkdir -p /app/data/videos && chown -R mentor:mentor /app/data
+#19 CACHED
+
+#20 [runtime 2/6] WORKDIR /app
+#20 CACHED
+
+#21 [runtime 3/6] COPY requirements-runtime.txt ./
+#21 CACHED
+
+#22 [runtime 5/6] COPY --from=web /usr/local/bin/node /usr/local/bin/node
+#22 CACHED
+
+#23 [runtime 6/6] COPY --from=bundle --chown=1000:1000 /app /app
+#23 DONE 3.8s
+
+#24 exporting to image
+#24 exporting layers
+#24 exporting layers 0.6s done
+#24 writing image sha256:51259fc8221de63f5b4dfaf9e247e64e1496806ca88ca72f85ec243fae1ef1a3 done
+#24 naming to docker.io/library/video-rag-mentor:v2-review done
+#24 DONE 0.6s

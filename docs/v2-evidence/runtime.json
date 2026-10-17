@@ -1,0 +1,25 @@
+{
+  "image_id": "sha256:51259fc8221de63f5b4dfaf9e247e64e1496806ca88ca72f85ec243fae1ef1a3",
+  "image_bytes": 902269680,
+  "startup_seconds": 8.893,
+  "idle_process_rss_bytes": 188325888,
+  "post_workload_process_rss_bytes": 213573632,
+  "sampled_peak_process_rss_bytes": 213573632,
+  "cgroup_peak_bytes": 230379520,
+  "workload_cpu_seconds": 2.876,
+  "workload_wall_seconds_including_probes": 1.871,
+  "forbidden_packages": [],
+  "workload": {
+    "requests": 180,
+    "peak_process_rss_bytes": 213483520,
+    "http_p50_ms": 9.97,
+    "http_p95_ms": 90.22,
+    "ffmpeg_and_http_elapsed_s": 1.323,
+    "synthetic_matrix_shape": [
+      10000,
+      768
+    ],
+    "matrix_searches": 50
+  },
+  "limits": "2 CPUs / 16 GiB; no GPU; no providers configured"
+}
