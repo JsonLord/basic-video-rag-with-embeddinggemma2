@@ -1,0 +1,28 @@
+{
+  "credential_source": "VM_BACKUP_GITHUB_TOKEN",
+  "http": {
+    "method": "GET",
+    "host": "api.github.com",
+    "status": 200,
+    "headers": {
+      "x-github-request-id": "80E9:137167:4D2D1:F8EC7:6AD3F69C",
+      "x-github-api-version-selected": "2022-11-28",
+      "x-ratelimit-limit": "15000",
+      "x-ratelimit-remaining": "14976",
+      "x-ratelimit-resource": "core",
+      "x-accepted-github-permissions": "metadata=read",
+      "x-oauth-scopes": "",
+      "content-type": "application/json; charset=utf-8",
+      "server": "envoy"
+    },
+    "client_authorization_attached": true
+  },
+  "private": true,
+  "permissions": {
+    "admin": true,
+    "maintain": true,
+    "push": true,
+    "triage": true,
+    "pull": true
+  }
+}

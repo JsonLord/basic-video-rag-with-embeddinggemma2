@@ -271,3 +271,24 @@ Current follow-up regression: **116 backend tests passed** (20 backup tests),
 including permanent-error retry suppression, transient reconciliation, sanitized
 headers and private staging boundary mocks. These new tests do not convert the
 blocked live gates into passes. No application UI or inference feature was redesigned.
+
+
+## Dedicated credential recheck — 18 October 2026
+
+The dedicated VM_BACKUP_GITHUB_TOKEN is now provisioned and ready. All requests
+in this recheck used it, with no integration GH_TOKEN fallback. Private repository
+read succeeded (200) and a new disposable release was created (201), but its first
+age-encrypted asset upload returned **404** from uploads.github.com. Request ID:
+`FE93:319F8B:36F88A:4FB435:6AD3F6B8`. The permanent rejection was not retried.
+
+Namespace `test-recovery-20261017-745d0278` has zero assets and zero committed
+checkpoints, verified after the failure. Recovery/dedup were not reached. No
+existing remote release/checkpoint was changed. Scope versus host-specific
+credential propagation remains undetermined until the same permitted token is
+compared on an independent trusted machine; none is attached here. No security
+bypass or credential extraction was attempted. HF credentials remain absent.
+
+The first private staging deployment remains **NO-GO**. See
+[credential qualification](credential-qualification.md) for sanitized evidence,
+exact comparison steps and attribution boundaries. Earlier statements that the
+dedicated binding was absent are historical and superseded by this recheck.
