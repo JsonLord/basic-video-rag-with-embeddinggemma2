@@ -28,6 +28,9 @@ const nextConfig: NextConfig = {
     return [
       { source: "/api/:path*", destination: `${BACKEND}/api/:path*` },
       { source: "/media/:path*", destination: `${BACKEND}/media/:path*` },
+      { source: "/health", destination: `${BACKEND}/api/health` },
+      { source: "/api-docs", destination: `${BACKEND}/docs` },
+      { source: "/openapi.json", destination: `${BACKEND}/openapi.json` },
     ];
   },
 };
