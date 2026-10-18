@@ -45,7 +45,7 @@ Every deployment **must** expose:
 - **`/api-docs`**
   - Documents **all** available API endpoints.
   - Must be reachable at:
-    `https://HF_PROFILE-openweb.hf.space/api-docs`
+    `https://Leon4gr45-openweb-v2-staging.hf.space/api-docs`
 
 ### Functional Endpoints
 ### /api/stats
