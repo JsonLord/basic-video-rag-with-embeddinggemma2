@@ -2,8 +2,8 @@
 
 ### Target Space
 - **Profile:** `Leon4gr45`
-- **Space:** `openweb`
-- **Full Identifier:** `Leon4gr45/openweb`
+- **Space:** `openweb-v2-staging`
+- **Full Identifier:** `Leon4gr45/openweb-v2-staging`
 - **Frontend Port:** `7860` (mandatory for all Hugging Face Spaces)
 
 ### Deployment Method
@@ -234,10 +234,23 @@ All endpoints listed here **must** appear in `/api-docs`.
 
 ## 3. Deployment Workflow
 
-Precondition: Use the huggingface hub cli hf to check that the space is empty of files nd delete any which are still in there and not belonging to the project to be uploaded
-
 ### Standard Deployment Command
-After any code change, run:
+Upload to the private staging space using the Python script provided in `docs/deployment-hf.md`:
 
-```bash
-hf upload Leon4gr45/openweb --repo-type=space
+```python
+import os
+from huggingface_hub import HfApi
+api = HfApi(token=os.environ['HF_TOKEN'])
+repo = 'Leon4gr45/openweb-v2-staging'
+api.upload_folder(
+    repo_id=repo, repo_type='space', folder_path='.',
+    allow_patterns=['README.md', 'Dockerfile', 'requirements-runtime.txt',
+                    'vrag/**', 'config/**', 'scripts/cloud-start.py', 'web/**'],
+    ignore_patterns=['**/.env*', '**/*.pem', '**/*.key', '**/*.agekey', '**/*.age',
+                     '**/__pycache__/**', '**/node_modules/**', '**/.next/**',
+                     'web/tests/**', 'web/test-results/**', 'web/playwright-report/**'],
+    commit_message='Stage reviewed Video RAG Visual Mentor v2'
+)
+```
+
+Scan build and run logs using the Hugging Face API or UI to verify the deployment.

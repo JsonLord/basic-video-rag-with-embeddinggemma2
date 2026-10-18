@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
       { source: "/media/:path*", destination: `${BACKEND}/media/:path*` },
       { source: "/health", destination: `${BACKEND}/api/health` },
       { source: "/api-docs", destination: `${BACKEND}/docs` },
-      { source: "/openapi.json", destination: `${BACKEND}/openapi.json` },
+      { source: "/openapi.json", destination: `${BACKEND}/api/openapi.json` },
     ];
   },
 };
