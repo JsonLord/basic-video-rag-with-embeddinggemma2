@@ -126,21 +126,21 @@ For example, non-executable illustrative configuration (must be adapted to real 
         adapter: openai-chat-vision
         model: qwen3.6:35b-a3b
         base_url_env: VM_QWEN_GATEWAY_URL
-        api_key_secret: VM_QWEN_GATEWAY_KEY
+        api_key_secret: QWEN_GATEWAY_KEY
         capabilities: [image_understanding, reasoning]
         trust: approved_sensitive
       nvidia:
         adapter: detection-http
         model: VERIFIED_DETECTOR_MODEL_ID
         base_url_env: VM_NVIDIA_DETECT_URL
-        api_key_secret: VM_NVIDIA_API_KEY
+        api_key_secret: NVIDIA_VISION_KEY
         capabilities: [object_detection, bounding_boxes]
         trust: approved_sensitive
       laya:
         adapter: laya-vision
         model: thaitea/laya-vision
         base_url_env: VM_LAYA_URL
-        api_key_secret: VM_LAYA_KEY
+        api_key_secret: LAYA_VISION_KEY
         capabilities: [image_understanding, visual_decision]
         trust: approved_sensitive
     features:
@@ -203,7 +203,7 @@ W5 acceptance: mocked real SDK client transport against a local fixture A2A serv
 - Synthetic dual-camera/virtual-geometry/recording, offline provider, parallel Laya+NVIDIA, Qwen streaming/tool execution, speech enable/disable and A2A tests. Real-device/browser matrix for laptop+USB and HTML media MIME variations. Validate production Next build, lint, backend pytest, Playwright and CPU Docker.
 - Instrument per-stage latency (capture→send→detect→track→overlay, audio→transcript→first mentor token, A2A acceptance→completion), p50/p95, error rate, CPU/RSS, payload size, real provider usage/cost and privacy-denial counts. Never invent unmeasured performance.
 - Browser live preview target 15–30fps where device/browser supports; sampled remote inference starts <=2fps/camera and is adaptive. Tracking can run at browser frame rate, with stale-input/reprojection guards. Hard SLA deferred until physical-provider tests.
-- No public HF staging, Space upload, production change, GitHub Actions activation, backup migration, provider key setup, DGX service start/stop, model pull or Docker infra changes without separate authorization. A dry-run/isolated synthetic test is okay.
+- No HF staging creation/update, Space upload, production change, GitHub Actions activation, backup migration, provider key setup, DGX service start/stop, model pull or Docker infra changes without separate authorization. A dry-run/isolated synthetic test is okay.
 - Preserve outstanding v2 blocker reporting: HF private authentication access, 12-hour encrypted GitHub recovery, actual uploads.github.com auth and live third-party inference checks.
 
 ## 4. Source layout (guidance, not compulsory exact names)
