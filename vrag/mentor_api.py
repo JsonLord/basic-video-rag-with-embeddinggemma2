@@ -278,7 +278,7 @@ async def test_provider(pid: str, owner=Depends(admin)):
     image = Image.new('RGB', (32,32), 'white')
     out = io.BytesIO(); image.save(out, format='JPEG')
     payload = {'text': 'Synthetic connection test. Respond with OK.', 'image': 'data:image/jpeg;base64,' + base64.b64encode(out.getvalue()).decode(), 'camera_id': 'test', 'frame_id': 0, 'width':32, 'height':32}
-    if p.adapter == 'openai-chat-vision' and 'image_understanding' not in p.capabilities:
+    if p.adapter in ('openai-chat-vision','openai-conversation') and 'image_understanding' not in p.capabilities:
         payload.pop('image')
     start = time.monotonic()
     await adapter.call(pid, p, payload, False)

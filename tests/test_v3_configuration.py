@@ -156,3 +156,20 @@ def test_conservative_fusion_retains_sources_and_distinct_upstream_objects():
     assert len(result)==2 and {e.source for e in result[0].evidence}=={'a','b'}
     assert len(fuse_detections([d('tracker','1',.9,oid='one'),d('tracker','2',.8,oid='two')]))==2
     assert [x.model_dump() for x in result]==[x.model_dump() for x in fuse_detections([d('a','3',.7,(.7,.7,.9,.9)),d('b','2',.8),d('a','1',.9)])]
+
+
+def test_environment_default_synthetic_probe_is_text_only(tmp_path,environment,monkeypatch):
+    store=ConfigStore(tmp_path);monkeypatch.setattr('vrag.mentor_api.store',store)
+    monkeypatch.setenv('VM_ADMIN_TOKEN','a'*32)
+    monkeypatch.setenv('OPENAI_COMPATIBLE_URL','https://models.example/v1')
+    monkeypatch.setenv('OPENAI_COMPATIBLE_MODEL','qwen-fixture')
+    monkeypatch.setenv('OPENAI_COMPATIBLE_API_KEY','synthetic-probe-key')
+    def reply(request):
+        body=json.loads(request.content)
+        assert all(p['type']=='text' for p in body['messages'][0]['content'])
+        return httpx.Response(200,json={'choices':[{'message':{'content':'synthetic probe'}}]})
+    monkeypatch.setattr('vrag.providers.adapter',Adapter(httpx.MockTransport(reply)))
+    c=TestClient(app,headers={'Authorization':'Bearer '+'a'*32})
+    result=c.post('/api/providers/hf-conversation/test')
+    assert result.status_code==200,result.text
+    assert result.json()['synthetic'] is True

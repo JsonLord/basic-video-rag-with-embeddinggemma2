@@ -129,3 +129,17 @@ async def test_live_inflight_revision_changes_and_correlation(configured,monkeyp
             assert data['frame_id']==1 and data['camera_id']=='camera2' and data['captured_at']==456.25
             assert all(s['captured_at']==456.25 for s in data['provider_results'])
         await client.delete(f'/api/live/sessions/{sid}')
+
+
+@pytest.mark.asyncio
+async def test_declared_tracking_requires_actual_upstream_object_ids(configured):
+    p=configured.providers['nvidia_gateway'].model_copy(update={'capabilities':['object_detection','bounding_boxes','object_tracking']})
+    data=detection_reply()
+    adapter=Adapter(httpx.MockTransport(lambda r:httpx.Response(200,json=data)))
+    payload={'image':'synthetic','frame_id':7,'camera_id':'camera2','width':640,'height':480}
+    with pytest.raises(ProviderFailure,match='invalid_output'):await adapter.call('tracking',p,payload)
+    data['detections'][0]['object_id']='stable-upstream-id'
+    first=await adapter.call('tracking',p,payload)
+    payload['frame_id']=8;data['frame_id']=8
+    second=await adapter.call('tracking',p,payload)
+    assert first.detections[0].object_id==second.detections[0].object_id=='stable-upstream-id'

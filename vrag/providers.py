@@ -99,6 +99,10 @@ class Adapter:
         self.limits = {}
         self.failures = {}
 
+    def stream(self,name,p,messages,registry=None):
+        from .conversation_stream import stream
+        return stream(self,name,p,messages,registry)
+
     async def call(self, name: str, p: Provider, payload: dict, sensitive=True) -> Output:
         if p.adapter == 'a2a':raise ProviderFailure('adapter_unavailable')
         p=resolved_provider(p)
@@ -231,6 +235,7 @@ class Adapter:
             for i, d in enumerate(data['detections']):
                 if not isinstance(d, dict):
                     raise ProviderFailure('invalid_output')
+                if 'object_tracking' in p.capabilities and not d.get('object_id'):raise ProviderFailure('invalid_output')
                 if d.get('object_id') and 'object_tracking' not in p.capabilities:
                     raise ProviderFailure('invalid_output')
                 if 'evidence' in d:raise ProviderFailure('invalid_output')
