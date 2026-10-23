@@ -47,7 +47,7 @@ these encryption tests are skipped, not reported as passing. Raw log:
 `docs/v3-evidence/baseline-backend.txt`. Browser baseline is recorded separately.
 
 Installed prerequisites: existing frozen Python runtime, Node/Next/React dependencies,
-FFmpeg and Chromium. A local dependency symlink reuses existing node_modules; no
+FFmpeg and Chromium. Turbopack rejected a cross-root dependency symlink, so a local copy reuses the installed node_modules without network installation; no
 lockfile/runtime dependency or production service is changed. New browser tests use
 simulated devices and deterministic provider fixtures, never live user media.
 
@@ -60,3 +60,14 @@ unit geometry and simulated-camera Playwright tests plus original UI regressions
 Only after those pass consider Gate 02+; do not claim Qwen, Phonon, native NVIDIA
 or A2A qualification from fixtures. Stop before unsafe external infrastructure or
 missing protocol assumptions. Existing backup/private-HF blockers remain visible.
+
+## Follow-up after environment republish
+
+On 23 October native HTTPS `git ls-remote` succeeded and reconfirmed source HEAD
+`64c97fe59f6b7aafdd6298488a3e185bd3bfa43d`. The original checkout remains clean.
+The Docker daemon is reachable, but the pinned Node manifest request to
+registry-1.docker.io is denied by policy. The additional registry/auth/Debian
+network draft is saved for review/publication; Docker build/startup remains blocked.
+The initially absent age test utility was obtained from its official v1.3.2 release,
+verified against the published SHA-256 and extracted only under /tmp. It allowed
+all encryption regression cases to execute; no production backup was touched.

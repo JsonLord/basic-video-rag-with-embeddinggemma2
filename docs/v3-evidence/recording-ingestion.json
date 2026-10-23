@@ -1,0 +1,86 @@
+{
+  "kind": "local-synthetic-browser-ingestion",
+  "source_sha": "64c97fe59f6b7aafdd6298488a3e185bd3bfa43d",
+  "inference": "mocked transcription and 3-dimensional text embeddings; no live provider requests",
+  "real_components": [
+    "Chromium simulated camera/microphone",
+    "native MediaRecorder",
+    "authenticated HTTP upload",
+    "FFmpeg and ffprobe",
+    "SQLite jobs",
+    "versioned text index",
+    "original Library",
+    "media playback",
+    "Search"
+  ],
+  "job": {
+    "id": "60494ad0ca9f443fbd714f07e422af0e",
+    "video_id": "upload-f22711c84e19e182d45acfc7",
+    "status": "complete",
+    "stage": "searchable"
+  },
+  "index_revision": "02a1886daf80473590ecd066bd85e422",
+  "original_duration_header": null,
+  "streams": [
+    {
+      "codec_type": "video",
+      "codec_name": "vp9",
+      "width": 640,
+      "height": 480
+    },
+    {
+      "codec_type": "audio",
+      "codec_name": "opus",
+      "width": null,
+      "height": null
+    }
+  ],
+  "files": [
+    {
+      "path": "videos/upload-f22711c84e19e182d45acfc7/segments.json",
+      "bytes": 252,
+      "sha256": "d697d95b39361061ffb6dc5010d270b68dd0088c4f4a0efa075d421b200d44a5"
+    },
+    {
+      "path": "videos/upload-f22711c84e19e182d45acfc7/transcript.json",
+      "bytes": 88,
+      "sha256": "4f0d2ff62d37604c277b6c7ae7ef54bc0f9caec6f012daa25f06682d4c3fbc96"
+    },
+    {
+      "path": "videos/upload-f22711c84e19e182d45acfc7/meta.json",
+      "bytes": 303,
+      "sha256": "79b49f1c1c811b7389b1769a0154d3549b8b672917186889b318f19d19782ed3"
+    },
+    {
+      "path": "videos/upload-f22711c84e19e182d45acfc7/original",
+      "bytes": 123861,
+      "sha256": "f22711c84e19e182d45acfc7b108293536813c50488641c8ce385bad5d1a6d3c"
+    },
+    {
+      "path": "videos/upload-f22711c84e19e182d45acfc7/video.mp4",
+      "bytes": 37761,
+      "sha256": "e425c0086cad86ac4ec0b2646ee8812cf28ec7f8a6f2062c7f0e15127d2c8220"
+    },
+    {
+      "path": "index/CURRENT",
+      "bytes": 32,
+      "sha256": "74a86fd10f5f9e0704ed12a11a26d8c03d99a7d19e1a9030236aaf36e925a741"
+    },
+    {
+      "path": "index/revisions/02a1886daf80473590ecd066bd85e422/manifest.json",
+      "bytes": 316,
+      "sha256": "35fd87f202dc030cde5d5a217fa031900dfee83f4047ab27265688b9b0ecc208"
+    },
+    {
+      "path": "index/revisions/02a1886daf80473590ecd066bd85e422/segments.json",
+      "bytes": 1013,
+      "sha256": "19b9fa60ffa7f0b77a971ad321269eff1dc4fbaad2ac425a1ca73715ca3cffab"
+    },
+    {
+      "path": "index/revisions/02a1886daf80473590ecd066bd85e422/text.npy",
+      "bytes": 176,
+      "sha256": "1ed2a64f9c5c7c47fde5d2b081639230d22babae7cab0c3b2da3702781820a5c"
+    }
+  ],
+  "implementation_sha": "54d2c70bb974f0fb743c923193e886d20885f4ef"
+}
