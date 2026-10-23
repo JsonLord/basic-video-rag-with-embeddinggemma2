@@ -21,3 +21,21 @@
   evidence. Full v3 conversation, ASR, A2A and native NVIDIA qualification remain open.
 - No production deployment, external provider activation, backup runtime migration,
   inference infrastructure change or recurring schedule activation.
+
+
+## Gate 02 and Gate 03 foundation — 23 October 2026
+
+- Added distinct strict configuration v2, explicit migration preview and preserved
+  raw v1 history objects, mixed-version restart, CAS, protected export and rollback.
+- Updated only encrypted configuration validators for mixed schemas; proved real
+  encrypted history/SQLite-ledger recovery using mocked GitHub storage.
+- Added exact HF OPENAI_COMPATIBLE_* / A2A_* defaults to the existing registry,
+  sanitized studio metadata, explicit roles and four disabled v2 presets.
+- Added conservative duplicate-detection fusion with contributor evidence and
+  capture/history/session revision correlation; delayed changes fail closed.
+- Gate 02 passed 144 backend and 42 browser cases, lint and production build.
+- Began Gate 03 only after acceptance: bounded OpenAI SSE, complete typed tool-call
+  validation, authenticated/privacy-checked registry and durable idempotency in
+  existing jobs.sqlite. Full conversation orchestration/UI and real A2A remain open.
+- Backend total after the foundation: 159 passed, no skips. No live model, Docker,
+  infrastructure, workflow, deployment or production recovery claim was added.

@@ -71,17 +71,35 @@ with every route disabled; Qwen there is only the existing reasoning adapter, no
 a claim of streaming/tools. Browser recording consent does not enable server-side
 recording via the legacy privacy.record_video setting, which remains false.
 
-Before adding v2 fields, use a distinct strict ConfigurationV2 model and explicit
-v1-to-v2 migration preserving original serialized history and version tags. Readers
-must accept both versions; exports retain the version; CAS and rollback validate
-the selected original version. Do not relabel unknown v2 YAML as v1 or silently
-ignore new fields. Migration tests must cover history restart/rollback and backup
-restore before switching writers. This migration is designed, not implemented here.
+Gate 02 now implements separate strict ProviderV2/ConfigurationV2 models and an
+explicit migration preview. Old v1 models remain unchanged. Version-dispatched
+readers load mixed histories, preserve original v1 object fields when appending,
+export protected historical revisions and roll back to their original schema.
+Schema, history, session routing and provider capability versions are distinct.
+Both encrypted backup validators accept the versioned configuration objects;
+formats, destinations and scheduling remain unchanged. Real encrypted restore tests
+cover mixed history and the initial tool ledger.
 
-Gate 02 retains the verified custom detection-http gateway and narrow Needle Router
-imageBase64/noul contracts. Existing mock transport tests cover parallel provenance
-and partial failures. No native NVIDIA adapter or new upstream schema is invented.
-Gate 03 requires streaming conversation/tool contracts; Gate 04 optional pinned
-Phonon engine qualification; Gate 05 official A2A SDK and durable jobs. Those remain
-implementation work, separate from unavailable live integrations. Default Docker
-and encrypted backup architecture are unchanged and no external service is enabled.
+HF OPENAI_COMPATIBLE_* and A2A_* references overlay the same registry only when a
+YAML role has not already selected a provider. Defaults are disabled/public_only;
+model selection resolves at dispatch and secret presence is not health. The studio
+shows sanitized defaults, migration preview and the explicit feature roles. See
+[hf-runtime-variables.md](hf-runtime-variables.md) for precedence and activation.
+
+Routing preserves captured timestamps and revisions and rejects results after
+history/session changes. Conservative same-label overlap suppression retains all
+contributor evidence and preserves distinct IDs from a single tracker. It does not
+prove physical identity across providers/cameras. Custom detection-http and narrow
+Needle Router imageBase64/noul remain the only spatial/decision contracts here;
+there is no native NVIDIA adapter. A2A and automatic framing-target dispatch roles
+remain disabled until qualified implementations exist.
+
+After Gate 02 checks passed, Gate 03 began with a bounded OpenAI SSE adapter and
+strict typed tool execution boundary. It uses shared egress and concurrency limits,
+fully validates complete tool calls and never executes a streaming delta. Only
+registered server-side handlers can run after session ownership/privacy checks.
+Idempotency state lives in existing jobs.sqlite and survives encrypted recovery;
+interrupted calls remain outcome_unknown. No real research handler is registered.
+Full conversation HTTP/UI orchestration, durable turns, grounded tools, lifecycle
+cleanup and capability probes are still pending. See [v3-gate02-report.md](v3-gate02-report.md)
+for evidence, limits and the remaining Gate 03/Phonon/A2A work.

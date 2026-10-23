@@ -1,6 +1,10 @@
 # Visual Mentor v3 qualification — 23 October 2026
 
-**Decision: GO for draft review of Gate 00 / Gate 01; NO-GO for full v3 release or deployment.**
+**Decision: Gate 02 passes synthetic acceptance; Gate 03 foundation begun. NO-GO for full v3 release or deployment.**
+
+Latest continuation starts from `7c2c1a87164d94a49105f374580703ff61e7bf1c`; see
+[v3-gate02-report.md](v3-gate02-report.md) for migration, precedence, exact evidence
+and the remaining work. Earlier Gate 01 evidence below remains preserved.
 This is an incremental implementation, not completion of spec.md. No deployment,
 production inference, backup checkpoint, recurring workflow or remote infrastructure
 was changed. Existing credential/deployment reports and their evidence are preserved.
@@ -17,8 +21,8 @@ the final SHA separately to avoid a self-referential commit hash.
 | --- | --- | --- |
 | 00 audit | PASS | Exact source object verification, v2 backend/browser baseline and spec/contracts audit in v3-baseline.md |
 | 01 browser recording/framing acceptance | PASS, simulated devices | Independent native encoding, review/export/delete, pause/resume, microphone and import consent, byte/time limits, lifecycle cleanup, typed spatial association and smoothed selection; actual authenticated import to Library/Search/playback |
-| 02 provider/config extension | PARTIAL | Existing v1 history/CAS/rollback and Laya+custom detector mock contracts pass; disabled v1 v3 candidate profile added. New v2 schema migration and native NVIDIA protocol qualification are not implemented |
-| 03 Qwen conversation/tools | NOT IMPLEMENTED | Existing advisory guidance remains. Streaming, durable conversation, validated/idempotent tools, cancel/reconnect and endpoint capability probing still required |
+| 02 provider/config extension | PASS, synthetic contracts | Separate strict v2 migration, preserved v1 history/CAS/export/rollback/encrypted restore, HF defaults/studio switching and correlated routing. Native NVIDIA remains unqualified; reserved research/target dispatch stays disabled |
+| 03 Qwen conversation/tools | FOUNDATION ONLY | Bounded OpenAI SSE and typed authenticated/idempotent tool boundary tested. Full chat API/UI, durable turns, grounded handlers, lifecycle and live probes remain |
 | 04 optional Phonon | NOT IMPLEMENTED | No mandatory dependency/weights added; pinned engine/license, English fixture and actual 2-vCPU measurements still required |
 | 05 A2A | NOT IMPLEMENTED | Official SDK client, durable jobs, reconciliation, cancellation and citations remain required |
 | 06 release | PARTIAL / BLOCKED | Production Next build/lint/backend/browser pass; CPU Docker build blocked at registry proxy policy. Physical devices and live/private deployment gates unrun |
@@ -35,11 +39,13 @@ claim of live NVIDIA/Laya/Qwen/A2A, Phonon or production backup recovery success
 | Baseline Python pytest | 106 passed, 14 skipped | Local backend; age-dependent skips |
 | Baseline Playwright | 22 passed, 1 skipped | Simulated devices / mock HTTP; fullstack opt-in absent |
 | Python pytest before test-tool installation | 110 passed, 14 skipped | Local backend, age absent |
-| Final Python pytest with verified age | 124 passed, no skips, one existing Starlette warning | Local backend, real FFmpeg/age; mocked provider/GitHub transports |
+| Gate 01 Python pytest with verified age | 124 passed, no skips, one existing Starlette warning | Local backend, real FFmpeg/age; mocked provider/GitHub transports |
 | Existing config/Laya/security subset | 41 passed | Mock transport, not provider integration |
-| Full Playwright with both integration flags | 38 passed in 1.2m | Native browser encoding and real local HTTP/media/index; synthetic camera/mic and inference fixtures |
+| Gate 01 Playwright with both integration flags | 38 passed in 1.2m | Native browser encoding and real local HTTP/media/index; synthetic camera/mic and inference fixtures |
 | npm --prefix web run lint | 0 errors, one existing Architecture unused-variable warning | Static analysis |
 | npm --prefix web run build | PASS | Production Next.js / TypeScript build |
+| Gate 02 backend / browser | 144 / 42 passed | Real local execution with synthetic external transports |
+| Gate 03 foundation + full backend | 159 passed, no skips | 13 new streaming/tool tests including real age recovery; no live Qwen/A2A |
 | CPU Docker build | BLOCKED | Managed daemon available; registry-1.docker.io manifest HEAD returns proxy Forbidden |
 
 Raw output is in `docs/v3-evidence/`. Browser tests include all existing UI screenshot
@@ -131,11 +137,10 @@ it is not dependent on production deployment permission.
 
 ## Next gate and activation boundary
 
-Continue Gate 02's explicit versioned configuration migration before writing new
-conversation/tracker/ASR/A2A YAML fields. Preserve original v1 history/export/rollback
-and prove restart plus encrypted backup compatibility. Keep detector gateway and
-native NVIDIA protocols distinct. Then implement Qwen streaming/tool execution
-with a fake OpenAI server, followed by Phonon and official A2A SDK fixtures.
+Gate 02 acceptance now passes. Continue Gate 03's authenticated conversation API/UI,
+durable turns, bounded context and grounded retrieval/scene handlers using the
+stream/tool boundary. Keep real A2A dispatch off until Gate 05's official SDK and
+reconciliation qualification. Optional Phonon remains Gate 04 work.
 
 After code completeness, rerun CPU Docker, perform a private auth/provider/resource
 qualification and a recovery drill. Deployment and production schedule activation
