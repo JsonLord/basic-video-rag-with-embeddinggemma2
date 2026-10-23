@@ -1,7 +1,24 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { CameraRecorder } from "@/components/live/CameraRecorder";
+import { FramingViewport } from "@/components/live/FramingViewport";
+import { AssociationTracker } from "@/lib/tracking";
 import { AccessToken } from "@/components/AccessToken";
 import { api, matchesObservation, Observation } from "@/lib/mentor";
+
+// Interactive media controls must wait for client hydration.
+const subscribeHydration = () => () => {};
+const clientReady = () => true;
+const serverReady = () => false;
+function useClientReady() {
+  return useSyncExternalStore(subscribeHydration, clientReady, serverReady);
+}
 
 type Registry = {
   config_version: number;
@@ -21,10 +38,18 @@ function Camera({
   registry: Registry | null;
   onObservation: (o: Observation) => void;
 }) {
+  const hydrated = useClientReady();
   const video = useRef<HTMLVideoElement>(null);
+  const framedCanvas = useRef<HTMLCanvasElement>(null);
+  const recorderStop = useRef<((reason?: string) => void) | null>(null);
+  const [recordingBusy, setRecordingBusy] = useState(false);
+  const [tracker] = useState(() => new AssociationTracker(slot, 10000));
   const stream = useRef<MediaStream | null>(null);
   const pending = useRef(false);
   const generation = useRef(0);
+  const invalidate = useCallback(() => {
+    generation.current++;
+  }, []);
   const frame = useRef(0);
   const abort = useRef<AbortController | null>(null);
   const [device, setDevice] = useState("");
@@ -43,6 +68,10 @@ function Camera({
     image: string;
   } | null>(null);
   const stop = useCallback(() => {
+    recorderStop.current?.(
+      "Recording interrupted: camera stopped or device changed.",
+    );
+    tracker.reset();
     generation.current++;
     abort.current?.abort();
     stream.current?.getTracks().forEach((t) => t.stop());
@@ -51,15 +80,20 @@ function Camera({
     setActive(false);
     setSendSession(null);
     setResult(null);
-  }, []);
-  useEffect(
-    () => () => {
-      generation.current++;
+  }, [tracker]);
+  useEffect(() => {
+    const element = video.current;
+    return () => {
+      invalidate();
       abort.current?.abort();
       stream.current?.getTracks().forEach((t) => t.stop());
-    },
-    [],
-  );
+      stream.current = null;
+      if (element) element.srcObject = null;
+      tracker.reset();
+      setActive(false);
+      setResult(null);
+    };
+  }, [invalidate, tracker]);
   useEffect(() => {
     const hide = () => {
       if (document.hidden) stop();
@@ -166,6 +200,7 @@ function Camera({
           height: canvas.height,
         })
       ) {
+        tracker.update(o.detections, o.captured_at);
         setResult({ observation: o, image });
         onObservation(o);
         setError("");
@@ -177,7 +212,17 @@ function Camera({
     } finally {
       pending.current = false;
     }
-  }, [session, send, active, registry, width, slot, feature, onObservation]);
+  }, [
+    session,
+    send,
+    active,
+    registry,
+    width,
+    slot,
+    feature,
+    onObservation,
+    tracker,
+  ]);
   useEffect(() => {
     if (!send) return;
     const timer = setInterval(() => void analyze(), 1000 / fps);
@@ -233,6 +278,7 @@ function Camera({
         </select>
         <button
           className="rounded-lg border border-line px-3 py-2 text-sm hover:bg-surface-2"
+          disabled={!hydrated}
           onClick={() => void start()}
         >
           Start preview
@@ -306,6 +352,7 @@ function Camera({
           <input
             type="checkbox"
             checked={mirror}
+            disabled={recordingBusy}
             onChange={(e) => setMirror(e.target.checked)}
           />{" "}
           Mirror
@@ -333,6 +380,7 @@ function Camera({
             generation.current++;
             abort.current?.abort();
             setResult(null);
+            tracker.reset();
             setFeature(e.target.value);
           }}
         >
@@ -351,6 +399,7 @@ function Camera({
               generation.current++;
               abort.current?.abort();
               setResult(null);
+              tracker.reset();
               setSendSession(e.target.checked ? session : null);
             }}
           />{" "}
@@ -368,6 +417,23 @@ function Camera({
         {send ? "Sending sampled frames" : "Local preview only"} · Destination:{" "}
         {destinations || "none"} · One request in flight maximum.
       </p>
+      <FramingViewport
+        slot={slot}
+        video={video}
+        canvas={framedCanvas}
+        tracker={tracker}
+        active={active}
+        mirror={mirror}
+        locked={recordingBusy}
+      />
+      <CameraRecorder
+        slot={slot}
+        video={video}
+        canvas={framedCanvas}
+        active={active}
+        stopRef={recorderStop}
+        onBusy={setRecordingBusy}
+      />
       {error && (
         <p role="alert" className="text-red-300 my-2">
           {error}
@@ -584,6 +650,7 @@ function Microphone({
 }
 
 export default function Live() {
+  const hydrated = useClientReady();
   const [reset, setReset] = useState(0),
     [devices, setDevices] = useState<MediaDeviceInfo[]>([]),
     [session, setSession] = useState<string | null>(null),
@@ -712,19 +779,21 @@ export default function Live() {
       <h1 className="text-2xl font-semibold">Live Visual Mentor</h1>
       <p className="text-ink-2 my-2">
         Two local camera previews. Frame and microphone transfer require
-        explicit actions. No recording is stored by the server.
+        explicit actions. Recordings stay local until an explicit authenticated
+        import.
       </p>
       <AccessToken />
       <div className="flex flex-wrap gap-3 my-4">
         <button
           className="rounded-lg border border-line px-3 py-2 text-sm hover:bg-surface-2"
+          disabled={!hydrated}
           onClick={() => void enumerate()}
         >
           Grant camera permission & list devices
         </button>
         <button
           className="rounded-lg border border-line px-3 py-2 text-sm hover:bg-surface-2"
-          disabled={!!session}
+          disabled={!hydrated || !!session}
           onClick={() => void enable()}
         >
           Authorize analysis session
