@@ -6,3 +6,4 @@ python-multipart==0.0.32
 httpx==0.28.1
 pydantic==2.14.0
 PyYAML==6.0.3
+a2a-sdk==0.3.26

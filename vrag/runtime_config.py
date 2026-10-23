@@ -17,7 +17,7 @@ def environment_providers(names=None):
         if not selected or len(selected)>200 or any(ord(c)<32 for c in selected):raise ProviderFailure('environment_configuration_invalid')
         p=ProviderV2(adapter=adapter,label='HF environment default; live capability unqualified',
             model=selected,model_env=model,base_url_env=url,api_key_secret=key,
-            capabilities=caps,trust='public_only')
+            capabilities=caps,trust='public_only',auth_mode='path_token' if adapter=='a2a' and '/a2a/t-{token}' in os.environ.get(url,'') else 'bearer')
         try:configured_destination(p,False)
         except ProviderFailure:raise ProviderFailure('environment_configuration_invalid') from None
         providers[name]=p

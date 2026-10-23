@@ -1,4 +1,4 @@
-"""Gate 03 typed execution boundary. No A2A handler is enabled here."""
+"""Typed authenticated execution and idempotency boundary; handlers are registered by the conversation runtime."""
 import asyncio
 import hashlib
 import inspect
@@ -53,8 +53,8 @@ class ToolRegistry:
     """Authenticated callbacks plus a bounded, restart-safe idempotency ledger.
 
     A pending/crashed operation is outcome_unknown, never blindly repeated.
-    Registered handlers must themselves enforce owned evidence/job access. Actual
-    research handlers and reconciliation are deliberately unavailable until Gate 05.
+    Registered handlers must themselves enforce owned evidence/job access. Real
+    research handlers and reconciliation live in research_jobs; this boundary never dispatches by model-supplied URL.
     """
     def __init__(self,authorize,handlers=None,connect=None):
         from .jobs import connect as existing_database

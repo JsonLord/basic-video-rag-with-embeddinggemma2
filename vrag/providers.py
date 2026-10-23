@@ -99,9 +99,9 @@ class Adapter:
         self.limits = {}
         self.failures = {}
 
-    def stream(self,name,p,messages,registry=None):
+    def stream(self,name,p,messages,registry=None,*,sensitive=True):
         from .conversation_stream import stream
-        return stream(self,name,p,messages,registry)
+        return stream(self,name,p,messages,registry,sensitive=sensitive)
 
     async def call(self, name: str, p: Provider, payload: dict, sensitive=True) -> Output:
         if p.adapter == 'a2a':raise ProviderFailure('adapter_unavailable')

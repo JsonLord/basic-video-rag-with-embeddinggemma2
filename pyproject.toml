@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Multimodal video RAG over YouTube videos with EmbeddingGemma 2 + Gemma 4 12B"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["fastapi==0.143.0", "uvicorn==0.54.0", "numpy==1.26.4", "pillow==12.3.0", "python-multipart==0.0.32", "httpx==0.28.1", "pydantic==2.14.0", "PyYAML==6.0.3"]
+dependencies = ["fastapi==0.143.0", "uvicorn==0.54.0", "numpy==1.26.4", "pillow==12.3.0", "python-multipart==0.0.32", "httpx==0.28.1", "pydantic==2.14.0", "PyYAML==6.0.3", "a2a-sdk==0.3.26"]
 
 [project.optional-dependencies]
 offline = ["av", "soundfile", "librosa", "yt-dlp[default,curl-cffi]", "webvtt-py", "jiwer", "openai>=1.40", "rich", "typer"]

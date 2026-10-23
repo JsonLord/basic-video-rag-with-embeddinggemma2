@@ -134,7 +134,7 @@ async def test_stream_authorization_and_redirect_fail_closed(setup,status):
 from test_github_checkpoints import encrypted, make_library
 
 @pytest.mark.asyncio
-async def test_tool_idempotency_survives_encrypted_destructive_restore(setup,encrypted,tmp_path):
+async def test_tool_idempotency_survives_encrypted_destructive_restore(setup,encrypted,tmp_path,monkeypatch):
     import shutil
     p,_,context=setup
     backup,remote=encrypted
@@ -145,8 +145,23 @@ async def test_tool_idempotency_survives_encrypted_destructive_restore(setup,enc
     call=ToolCall(id='backed_call',name='retrieve_video_evidence',arguments={'query':'evidence'})
     registry=ToolRegistry(lambda *a:True,{'retrieve_video_evidence':retrieve},connect)
     assert await registry.execute(call,context)=={'citation':'v1:0'}
+    # The complete conversation/research tables use the same backed-up DB.
+    from vrag.mentor_state import database
+    cid='c'*32
+    monkeypatch.setattr('vrag.jobs.DATA',data)
+    with database() as db:
+        db.execute('INSERT INTO mentor_conversations(id,owner,title,created) VALUES(?,?,?,?)',(cid,context.owner,'Encrypted conversation',1))
+        db.execute('INSERT INTO mentor_turns(id,conversation,request_id,fingerprint,status,payload,messages,created) VALUES(?,?,?,?,?,?,?,?)',('encrypted_turn',cid,'encrypted_request','digest','completed',json.dumps({'text':'What is observed?'}),json.dumps([{'role':'user','content':'What is observed?'},{'role':'assistant','content':'Evidence remains uncertain.'}]),1))
+        db.execute('INSERT INTO research_jobs(id,owner,conversation,idempotency_key,fingerprint,status,payload,provider,revision,destination_hash,remote_id,context_id,created,updated) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',('encrypted_job',context.owner,cid,'encrypted_dispatch','digest','running','{}','agent',1,'destination-digest','remote-task','remote-context',1,1))
     stage=tmp_path/'stage';stage.mkdir();backup.capture(data,state,stage);backup.backup(stage)
     shutil.rmtree(root);shutil.rmtree(stage)
     backup.restore(tmp_path/'restored')
     restarted=ToolRegistry(lambda *a:True,{'retrieve_video_evidence':retrieve},lambda:sqlite3.connect(tmp_path/'restored/data/jobs.sqlite'))
     assert await restarted.execute(call,context)=={'citation':'v1:0'} and count==[1]
+
+    monkeypatch.setattr('vrag.jobs.DATA',tmp_path/'restored/data')
+    from vrag.conversation import detail
+    from vrag.research_jobs import get_job
+    restored=detail(cid,owner=context.owner)
+    assert restored['turns'][0]['messages'][-1]['content']=='Evidence remains uncertain.'
+    assert get_job('encrypted_job',context.owner,cid)['remote_task_id']=='remote-task'

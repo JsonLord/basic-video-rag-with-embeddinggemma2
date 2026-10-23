@@ -164,12 +164,21 @@ def test_environment_default_synthetic_probe_is_text_only(tmp_path,environment,m
     monkeypatch.setenv('OPENAI_COMPATIBLE_URL','https://models.example/v1')
     monkeypatch.setenv('OPENAI_COMPATIBLE_MODEL','qwen-fixture')
     monkeypatch.setenv('OPENAI_COMPATIBLE_API_KEY','synthetic-probe-key')
+    requests=[]
     def reply(request):
-        body=json.loads(request.content)
-        assert all(p['type']=='text' for p in body['messages'][0]['content'])
-        return httpx.Response(200,json={'choices':[{'message':{'content':'synthetic probe'}}]})
+        from v3_protocol_fixtures import calls,completion
+        body=json.loads(request.content);requests.append(body)
+        assert all(isinstance(m['content'],str) for m in body['messages'])
+        if body['messages'][-1]['role']=='tool':
+            assert body['messages'][-1]['tool_call_id']=='call_0'
+            content=completion('Synthetic follow-up verified')
+        else:content=calls([('retrieve_video_evidence',{'query':'synthetic'})])
+        content=content.replace('fixture-qwen','qwen-fixture')
+        return httpx.Response(200,headers={'content-type':'text/event-stream'},content=content)
     monkeypatch.setattr('vrag.providers.adapter',Adapter(httpx.MockTransport(reply)))
     c=TestClient(app,headers={'Authorization':'Bearer '+'a'*32})
     result=c.post('/api/providers/hf-conversation/test')
     assert result.status_code==200,result.text
     assert result.json()['synthetic'] is True
+    assert result.json()['correlation']=='passed' and result.json()['model_identity']=='matched'
+    assert len(requests)==3

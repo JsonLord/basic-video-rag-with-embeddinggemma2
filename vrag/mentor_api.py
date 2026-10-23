@@ -272,7 +272,12 @@ async def test_provider(pid: str, owner=Depends(admin)):
         raise HTTPException(404, 'unknown provider')
     p = cfg.providers[pid]
     # Only a synthetic image/text; microphone tests require an explicit bounded clip in a live session.
-    if p.adapter == 'a2a':raise HTTPException(409,'A2A client qualification is pending Gate 05')
+    if p.adapter == 'a2a':
+        from .research import adapter as research_adapter
+        return {'provider':pid,'status':'agent_card_verified','inference_tested':False,**await research_adapter.probe(p)}
+    if p.adapter == 'openai-conversation':
+        from .conversation_probe import probe
+        return await probe(pid,p)
     if p.adapter == 'openai-transcription':
         raise HTTPException(409, 'Use an explicitly enabled live audio clip to test transcription')
     image = Image.new('RGB', (32,32), 'white')

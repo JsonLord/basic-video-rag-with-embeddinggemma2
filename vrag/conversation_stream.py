@@ -1,7 +1,7 @@
 """Bounded OpenAI SSE client over the existing provider/egress abstraction.
 
-Gate 03 foundation: no public raw model endpoint, automatic tool execution,
-conversation UI or native Qwen video/audio protocol is added by this module.
+The durable conversation runner owns tool execution and turn state. This module
+validates streaming text and complete correlated tool calls; it never executes them.
 """
 import asyncio
 import json
@@ -14,22 +14,50 @@ from .providers import ProviderFailure, destination, resolved_provider, MAX_RESP
 from .egress import transport_for
 from .conversation_tools import ToolCall
 
+class FunctionCall(Strict):
+    name: str
+    arguments: str
+
+class AssistantCall(Strict):
+    id: str
+    type: Literal['function'] = 'function'
+    function: FunctionCall
+    @model_validator(mode='after')
+    def checked(self):
+        ToolCall(id=self.id,name=self.function.name,arguments=json.loads(self.function.arguments))
+        return self
+
 class Message(Strict):
     role: Literal['system','user','assistant','tool']
     content: str = Field(max_length=16000)
     tool_call_id: str | None = Field(default=None,max_length=100)
+    tool_calls: list[AssistantCall] | None = Field(default=None,max_length=5)
     @model_validator(mode='after')
     def owned_tool_result(self):
         if self.role=='tool' and not self.tool_call_id:raise ValueError('tool result requires correlation')
         if self.role!='tool' and self.tool_call_id:raise ValueError('unexpected tool correlation')
+        if self.tool_calls and self.role!='assistant':raise ValueError('only assistants can call tools')
+        if self.tool_calls and len({c.id for c in self.tool_calls})!=len(self.tool_calls):raise ValueError('duplicate tool IDs')
         return self
+
+def validate_correlation(messages):
+    pending=set()
+    for m in messages:
+        if m.role=='tool':
+            if m.tool_call_id not in pending:raise ProviderFailure('invalid_tool_correlation')
+            pending.remove(m.tool_call_id)
+        else:
+            if pending:raise ProviderFailure('invalid_tool_correlation')
+            if m.tool_calls:pending={c.id for c in m.tool_calls}
+    if pending:raise ProviderFailure('invalid_tool_correlation')
 
 class StreamEvent(Strict):
     type: Literal['text','tool_call','done']
     text: str = Field(default='',max_length=32000)
     call: ToolCall | None = None
+    model: str | None = None
 
-async def stream(adapter,name,provider,messages,registry=None):
+async def stream(adapter,name,provider,messages,registry=None,*,sensitive=True):
     """Yield text progressively; tool calls only after a complete, valid stream.
 
     Caller owns user/session authentication and explicit routing selection. Tools
@@ -39,7 +67,8 @@ async def stream(adapter,name,provider,messages,registry=None):
     if p.adapter!='openai-conversation' or 'conversation' not in p.capabilities:raise ProviderFailure('capability_mismatch')
     typed=[Message.model_validate(m.model_dump() if isinstance(m,Message) else m) for m in messages]
     if not 1<=len(typed)<=20 or sum(len(m.content) for m in typed)>32000:raise ProviderFailure('context_limit')
-    base=await destination(p,True)
+    validate_correlation(typed)
+    base=await destination(p,sensitive)
     if not base.endswith('/v1'):base += '/v1'
     key=os.environ.get(p.api_key_secret,'') if p.api_key_secret else ''
     if p.api_key_secret and not key:raise ProviderFailure('credential_missing')
@@ -48,7 +77,7 @@ async def stream(adapter,name,provider,messages,registry=None):
     request={'model':p.model,'messages':[m.model_dump(exclude_none=True) for m in typed],'stream':True,'max_tokens':1024}
     if registry and registry.definitions():request['tools']=registry.definitions()
     headers={'Authorization':f'Bearer {key}'} if key else {}
-    buffer=bytearray();event_lines=[];calls={};text_size=0;total=0;finished=None;done=False
+    buffer=bytearray();event_lines=[];calls={};text_size=0;total=0;finished=None;done=False;reported_model=None
     async with semaphore:
         try:
             async with asyncio.timeout(p.timeout_ms/1000):
@@ -71,6 +100,9 @@ async def stream(adapter,name,provider,messages,registry=None):
                                 data=b'\n'.join(event_lines);event_lines=[]
                                 if data==b'[DONE]':done=True;break
                                 value=json.loads(data)
+                                if value.get('model'):
+                                    if value['model']!=p.model:raise ProviderFailure('model_identity_mismatch')
+                                    reported_model=value['model']
                                 choices=value.get('choices',[])
                                 if not choices:continue # Optional usage-only chunk.
                                 if len(choices)!=1 or choices[0].get('index',0)!=0:raise ProviderFailure('invalid_output')
@@ -101,7 +133,7 @@ async def stream(adapter,name,provider,messages,registry=None):
                 if any(c.id==parsed.id for c in validated):raise ProviderFailure('invalid_output')
                 validated.append(parsed)
             for call in validated:yield StreamEvent(type='tool_call',call=call)
-            yield StreamEvent(type='done')
+            yield StreamEvent(type='done',model=reported_model)
         except asyncio.CancelledError:raise
         except (TimeoutError,httpx.TimeoutException):raise ProviderFailure('timeout') from None
         except ProviderFailure:raise
