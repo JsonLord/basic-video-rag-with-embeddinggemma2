@@ -39,11 +39,17 @@ features:
     yield data,calls
     store.history,store.version=old;get_index.cache_clear()
 
-@pytest.fixture
-def clip(tmp_path):
+@pytest.fixture(params=["mp4", "streaming-webm"])
+def clip(tmp_path,request):
     if not shutil.which('ffmpeg'):pytest.skip('FFmpeg required for real CPU media test')
     path=tmp_path/'clip.mp4'
     subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-f','lavfi','-i','color=c=blue:s=160x120:r=5','-f','lavfi','-i','sine=frequency=440:sample_rate=16000','-t','1','-c:v','libx264','-threads','1','-c:a','aac','-y',str(path)],check=True)
+    if request.param == 'streaming-webm':
+        # Non-seekable WebM muxing reproduces MediaRecorder's missing Duration.
+        streamed=subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-i',str(path),'-c:v','libvpx','-threads','1','-c:a','libopus','-f','webm','pipe:1'],check=True,capture_output=True).stdout
+        path=tmp_path/'streamed.webm';path.write_bytes(streamed)
+        probe=json.loads(subprocess.run(['ffprobe','-v','error','-show_format','-of','json',str(path)],check=True,capture_output=True).stdout)
+        assert 'duration' not in probe['format']
     return path
 
 @pytest.mark.asyncio
@@ -118,3 +124,18 @@ def test_actual_media_mount_accepts_secure_cookie_and_range(setup,tmp_path,monke
     assert c.get('/api/config').status_code==401
     c.delete('/api/access')
     assert c.get('/media/clip.mp4').status_code==401
+
+
+@pytest.mark.asyncio
+async def test_streamed_duration_limit_never_publishes_truncated_proxy(setup,clip,monkeypatch):
+    monkeypatch.setattr(jobs,'MAX_DURATION',.5)
+    c=TestClient(app,headers={'Authorization':'Bearer '+'u'*32})
+    first=c.post('/api/ingest?filename=Oversize-duration',content=clip.read_bytes()).json()
+    with jobs.connect() as db:job=dict(db.execute('SELECT * FROM jobs WHERE id=?',(first['id'],)).fetchone())
+    with pytest.raises(ProviderFailure,match='duration_limit_30_minutes'):
+        await jobs.run_job(job)
+    vdir=setup[0]/'videos'/first['video_id']
+    assert (vdir/'original').exists()
+    assert not (vdir/'video.mp4').exists()
+    assert not (vdir/'proxy.tmp.mp4').exists()
+    assert not (setup[0]/'index/CURRENT').exists()
