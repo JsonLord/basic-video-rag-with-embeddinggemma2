@@ -29,10 +29,35 @@ type Config = {
   providers: Record<string, Provider>;
   features: Record<string, Route>;
 };
-type EnvironmentDefaults = {status: string; error?: string; live_status: string; providers: Record<string,{destination:string|null;model:string;credential_present:boolean;capability_version:number;trust:string}>};
-const featureRoles = ["mentor.conversation","live.camera1.detection","live.camera2.detection","live.camera1.decisions","live.camera2.decisions","live.tracking","live.framing.target_selection","live.temporal_reasoning","audio.transcription","research.dispatch"];
+type EnvironmentDefaults = {
+  status: string;
+  error?: string;
+  live_status: string;
+  providers: Record<
+    string,
+    {
+      destination: string | null;
+      model: string;
+      credential_present: boolean;
+      capability_version: number;
+      trust: string;
+    }
+  >;
+};
+const featureRoles = [
+  "mentor.conversation",
+  "live.camera1.detection",
+  "live.camera2.detection",
+  "live.camera1.decisions",
+  "live.camera2.decisions",
+  "live.tracking",
+  "live.framing.target_selection",
+  "live.temporal_reasoning",
+  "audio.transcription",
+  "research.dispatch",
+];
 type Snapshot = {
-  models?: Record<string,{model:string;configured:boolean}>;
+  models?: Record<string, { model: string; configured: boolean }>;
   schema_version?: number;
   history_revision?: number;
   environment_defaults?: EnvironmentDefaults;
@@ -50,7 +75,7 @@ const field = "rounded-lg border border-line bg-page px-3 py-2 text-sm";
 const panel = "rounded-xl border border-line bg-surface p-5";
 const caps: Record<string, string[]> = {
   "openai-conversation": ["conversation", "reasoning"],
-  "a2a": ["research_dispatch"],
+  a2a: ["research_dispatch"],
   "laya-vision": ["image_understanding", "visual_decision"],
   "detection-http": ["object_detection", "bounding_boxes"],
   "openai-chat-vision": ["image_understanding", "reasoning"],
@@ -82,7 +107,7 @@ export default function Models() {
   try {
     const c = parse(text, { maxAliasCount: 0 });
     if (c && typeof c === "object")
-      draft = {version:1,providers:{},features:{},...c} as Config;
+      draft = { version: 1, providers: {}, features: {}, ...c } as Config;
   } catch {}
   function edit(t: string) {
     setText(t);
@@ -125,7 +150,11 @@ export default function Models() {
     return { updated: "draft only" };
   }
   function buildProvider() {
-    if (["openai-conversation","a2a"].includes(adapter) && draft?.version !== 2) throw Error("Migrate the draft to schema v2 first.");
+    if (
+      ["openai-conversation", "a2a"].includes(adapter) &&
+      draft?.version !== 2
+    )
+      throw Error("Migrate the draft to schema v2 first.");
     if (!draft) throw Error("Load a profile first.");
     if (!/^[a-zA-Z0-9_-]{1,64}$/.test(pid) || !model)
       throw Error("Provide an ID and a verified model ID.");
@@ -177,14 +206,40 @@ export default function Models() {
         <button className={btn} disabled={busy} onClick={() => void run(load)}>
           Load current config
         </button>
-        <button className={btn} disabled={!draft || busy} onClick={()=>void run(async()=>{
-          const result=await api<{yaml:string}>("/api/config/migrate",{yaml:text},true);
-          edit(result.yaml);return {schema_version:2,persisted:false};
-        })}>Migrate draft to schema v2</button>
-        <button className={btn} disabled={!draft || busy} onClick={()=>void run(async()=>{
-          const result=await api<{yaml:string}>("/api/config/migrate",{yaml:text,include_environment_defaults:true},true);
-          edit(result.yaml);return {environment_defaults:"draft only; routes disabled"};
-        })}>Use HF defaults in draft</button>
+        <button
+          className={btn}
+          disabled={!draft || busy}
+          onClick={() =>
+            void run(async () => {
+              const result = await api<{ yaml: string }>(
+                "/api/config/migrate",
+                { yaml: text },
+                true,
+              );
+              edit(result.yaml);
+              return { schema_version: 2, persisted: false };
+            })
+          }
+        >
+          Migrate draft to schema v2
+        </button>
+        <button
+          className={btn}
+          disabled={!draft || busy}
+          onClick={() =>
+            void run(async () => {
+              const result = await api<{ yaml: string }>(
+                "/api/config/migrate",
+                { yaml: text, include_environment_defaults: true },
+                true,
+              );
+              edit(result.yaml);
+              return { environment_defaults: "draft only; routes disabled" };
+            })
+          }
+        >
+          Use HF defaults in draft
+        </button>
         <label className={btn}>
           Import YAML
           <input
@@ -260,12 +315,28 @@ export default function Models() {
           </p>
         </div>
       )}
-      {state?.environment_defaults && <section className={panel} aria-label="Hugging Face runtime defaults">
-        <h2 className="font-medium">Hugging Face runtime defaults</h2>
-        <p className="text-sm">{state.environment_defaults.status} · Live health {state.environment_defaults.live_status}. Defaults do not authorize sensitive transfers or enable routes.</p>
-        {state.environment_defaults.error && <p role="alert">{state.environment_defaults.error}</p>}
-        {Object.entries(state.environment_defaults.providers).map(([name,p])=><p className="text-sm break-all" key={name}>{name} · {p.destination ?? "unconfigured"} · {p.model} · credential available: {String(p.credential_present)} · capability contract v{p.capability_version}</p>)}
-      </section>}
+      {state?.environment_defaults && (
+        <section className={panel} aria-label="Hugging Face runtime defaults">
+          <h2 className="font-medium">Hugging Face runtime defaults</h2>
+          <p className="text-sm">
+            {state.environment_defaults.status} · Live health{" "}
+            {state.environment_defaults.live_status}. Defaults do not authorize
+            sensitive transfers or enable routes.
+          </p>
+          {state.environment_defaults.error && (
+            <p role="alert">{state.environment_defaults.error}</p>
+          )}
+          {Object.entries(state.environment_defaults.providers).map(
+            ([name, p]) => (
+              <p className="text-sm break-all" key={name}>
+                {name} · {p.destination ?? "unconfigured"} · {p.model} ·
+                credential available: {String(p.credential_present)} ·
+                capability contract v{p.capability_version}
+              </p>
+            ),
+          )}
+        </section>
+      )}
       <section
         aria-label="Provider cards"
         className="grid gap-3 md:grid-cols-2 xl:grid-cols-3"
@@ -434,7 +505,11 @@ export default function Models() {
               value={feature}
               onChange={(e) => setFeature(e.target.value)}
             />
-            <datalist id="feature-roles">{featureRoles.map(role=><option key={role} value={role}/>)}</datalist>
+            <datalist id="feature-roles">
+              {featureRoles.map((role) => (
+                <option key={role} value={role} />
+              ))}
+            </datalist>
             <select
               aria-label="Route strategy"
               className={field}

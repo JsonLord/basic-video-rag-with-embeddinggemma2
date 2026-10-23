@@ -874,7 +874,10 @@ export default function Live() {
                 setReset((n) => n + 1);
                 setObservations([]);
                 try {
-                  const r = await api<{ features: Registry["features"]; routing_revision?: number }>(
+                  const r = await api<{
+                    features: Registry["features"];
+                    routing_revision?: number;
+                  }>(
                     `/api/live/sessions/${session}/routing`,
                     {
                       config_version: registry.config_version,
@@ -888,7 +891,11 @@ export default function Live() {
                     false,
                     "PUT",
                   );
-                  setRegistry({ ...registry, features: r.features, routing_revision: r.routing_revision ?? 0 });
+                  setRegistry({
+                    ...registry,
+                    features: r.features,
+                    routing_revision: r.routing_revision ?? 0,
+                  });
                 } catch (e) {
                   setError(String(e));
                 }
