@@ -16,7 +16,7 @@ import tarfile
 import tempfile
 import time
 
-from config.schema import Configuration
+from config.schema import parse_configuration
 
 FORMAT=1
 MAX_FILE=32*1024*1024
@@ -68,7 +68,8 @@ def snapshot(data_root,state_root,assets_root,output,recipient,source_snapshot_i
             source=state_root/filename
             if source.exists():
                 safe_file(source,state_root)
-                history=[Configuration.model_validate(c).model_dump() for c in json.loads(source.read_text())]
+                history=json.loads(source.read_text())
+                for c in history:parse_configuration(c)
                 add('state/'+filename,json.dumps(history).encode())
         for name in ('jobs.sqlite',):
             source=data_root/name

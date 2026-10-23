@@ -287,10 +287,10 @@ class Checkpoints:
 
     @staticmethod
     def coverage(root):
-        from config.schema import Configuration
+        from config.schema import parse_configuration
         config=root/'state/config-history.json'
         if config.exists():
-            for entry in json.loads(config.read_text()): Configuration.model_validate(entry)
+            for entry in json.loads(config.read_text()): parse_configuration(entry)
         data=root/'data'; current=data/'index/CURRENT'
         coverage={'index_revision':None, 'video_count':0, 'index_segments':0}
         for folder in (data/'videos').glob('*'):

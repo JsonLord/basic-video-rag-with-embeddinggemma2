@@ -1,0 +1,113 @@
+# All routes disabled; no native NVIDIA, temporal, A2A or live model qualification implied.
+version: 2
+profile: Custom
+providers:
+  qwen:
+    label: HF conversation default; unqualified
+    adapter: openai-conversation
+    model: Qwen/Qwen3.6-35B-A3B
+    model_env: OPENAI_COMPATIBLE_MODEL
+    base_url_env: OPENAI_COMPATIBLE_URL
+    api_key_secret: OPENAI_COMPATIBLE_API_KEY
+    capabilities:
+    - conversation
+    - reasoning
+    capability_version: 1
+    trust: public_only
+  nvidia_gateway:
+    label: Custom detection-http gateway only; native NVIDIA protocol unqualified
+    adapter: detection-http
+    base_url_env: NVIDIA_DETECTION_BASE_URL
+    api_key_secret: NVIDIA_DETECTION_API_KEY
+    model: replace-with-verified-gateway-model
+    capabilities:
+    - object_detection
+    - bounding_boxes
+    trust: approved_sensitive
+    timeout_ms: 10000
+    concurrency: 2
+    capability_version: 1
+    model_env: null
+  laya:
+    label: Needle Router typed decisions; no geometry
+    adapter: laya-vision
+    base_url_env: LAYA_BASE_URL
+    api_key_secret: LAYA_API_KEY
+    model: thaitea/laya-vision
+    capabilities:
+    - image_understanding
+    - visual_decision
+    trust: approved_sensitive
+    timeout_ms: 60000
+    concurrency: 1
+    capability_version: 1
+    model_env: null
+  research:
+    adapter: a2a
+    label: Reserved outbound A2A client; Gate 05 pending
+    base_url_env: A2A_URL
+    api_key_secret: A2A_TOKEN
+    model: agent-card-unqualified
+    capabilities:
+    - research_dispatch
+    capability_version: 1
+    trust: public_only
+features:
+  mentor.conversation:
+    providers:
+    - qwen
+    enabled: false
+  live.camera1.detection:
+    providers:
+    - nvidia_gateway
+    enabled: false
+  live.camera2.detection:
+    providers:
+    - nvidia_gateway
+    enabled: false
+  live.camera1.decisions:
+    providers:
+    - laya
+    enabled: false
+  live.camera2.decisions:
+    providers:
+    - laya
+    enabled: false
+  live.tracking:
+    providers:
+    - nvidia_gateway
+    enabled: false
+  live.framing.target_selection:
+    providers:
+    - laya
+    enabled: false
+  live.temporal_reasoning:
+    providers:
+    - nvidia_gateway
+    enabled: false
+  research.dispatch:
+    providers:
+    - research
+    enabled: false
+  live.camera1.scene:
+    providers:
+    - nvidia_gateway
+    enabled: false
+  live.camera2.scene:
+    providers:
+    - nvidia_gateway
+    enabled: false
+cameras:
+  camera1:
+    analysis_fps: 1.0
+    width: 640
+    height: 480
+  camera2:
+    analysis_fps: 1.0
+    width: 640
+    height: 480
+privacy:
+  record_video: false
+  upload_only_on_explicit_start: true
+  require_approved_destination_for_camera: true
+migrated_from: 1

@@ -21,6 +21,7 @@ function useClientReady() {
 }
 
 type Registry = {
+  routing_revision?: number;
   config_version: number;
   providers: Record<string, { destination: string | null }>;
   features: Record<string, { enabled: boolean; providers: string[] }>;
@@ -169,7 +170,8 @@ function Camera({
     const image = canvas.toDataURL("image/jpeg", 0.7),
       id = ++frame.current,
       requestId = crypto.randomUUID(),
-      g = generation.current;
+      g = generation.current,
+      capturedAt = performance.now();
     pending.current = true;
     abort.current = new AbortController();
     try {
@@ -178,7 +180,8 @@ function Camera({
         {
           camera_id: slot,
           frame_id: id,
-          captured_at: performance.now(),
+          captured_at: capturedAt,
+          routing_revision: registry.routing_revision ?? 0,
           image,
           feature,
           config_version: registry.config_version,
@@ -198,6 +201,8 @@ function Camera({
           version: registry.config_version,
           width: canvas.width,
           height: canvas.height,
+          capturedAt,
+          routingRevision: registry.routing_revision ?? 0,
         })
       ) {
         tracker.update(o.detections, o.captured_at);
@@ -869,7 +874,7 @@ export default function Live() {
                 setReset((n) => n + 1);
                 setObservations([]);
                 try {
-                  const r = await api<{ features: Registry["features"] }>(
+                  const r = await api<{ features: Registry["features"]; routing_revision?: number }>(
                     `/api/live/sessions/${session}/routing`,
                     {
                       config_version: registry.config_version,
@@ -883,7 +888,7 @@ export default function Live() {
                     false,
                     "PUT",
                   );
-                  setRegistry({ ...registry, features: r.features });
+                  setRegistry({ ...registry, features: r.features, routing_revision: r.routing_revision ?? 0 });
                 } catch (e) {
                   setError(String(e));
                 }

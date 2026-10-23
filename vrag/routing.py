@@ -2,7 +2,7 @@
 import asyncio
 import time
 from config.schema import Configuration
-from .providers import Output, ProviderFailure, adapter
+from .providers import Output, DetectionEvidence, ProviderFailure, adapter
 
 async def route(config: Configuration, feature: str, payload: dict, sensitive=True):
     rule = config.features.get(feature)
@@ -40,7 +40,10 @@ async def route(config: Configuration, feature: str, payload: dict, sensitive=Tr
                     task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
         called = {r['provider'] for r in results}
-        results.extend({'provider': n, 'status': 'cancelled', 'latency_ms': 0} for n in names if n not in called)
+        for name,task in zip(names,tasks):
+            if name not in called:
+                if task.cancelled():results.append({'provider':name,'status':'cancelled','latency_ms':0})
+                else:results.append(task.result()[1])
         if rule.result_policy == 'quorum' and len(outputs) < rule.quorum:
             outputs = []
             warnings.append('quorum_not_met')
@@ -60,9 +63,42 @@ async def route(config: Configuration, feature: str, payload: dict, sensitive=Tr
     # Boxes can ONLY originate from a validated detector adapter. No text-to-box conversion.
     merged = Output(
         warnings=warnings,
-        detections=[d for o in outputs for d in o.detections][:200],
+        detections=fuse_detections([d for o in outputs for d in o.detections]),
         decisions=[d for o in outputs for d in o.decisions][:20],
         text='\n'.join(o.text for o in outputs if o.text)[:32000],
         embedding=next((o.embedding for o in outputs if o.embedding), None),
     )
+    for result in results:
+        result['capability_version']=getattr(config.providers[result['provider']],'capability_version',1)
+        for key in ('frame_id','camera_id','captured_at','config_version'):
+            if key in payload:result[key]=payload[key]
     return merged, results
+
+
+def overlap(a,b):
+    x1,y1,x2,y2=a;u1,v1,u2,v2=b
+    intersection=max(0,min(x2,u2)-max(x1,u1))*max(0,min(y2,v2)-max(y1,v1))
+    return intersection/((x2-x1)*(y2-y1)+(u2-u1)*(v2-v1)-intersection)
+
+
+def fuse_detections(detections):
+    """Conservative same-label NMS, retaining every contributing observation.
+
+    IDs from distinct providers are not global object identities. Distinct IDs
+    from the SAME tracker are never suppressed. No cross-frame/camera fusion.
+    """
+    groups=[]
+    for candidate in sorted(detections,key=lambda d:(-d.confidence,d.source,d.detection_id)):
+        group=next((g for g in groups if g[0].label==candidate.label and
+            all(not (d.source==candidate.source and d.object_id and candidate.object_id and d.object_id!=candidate.object_id) for d in g) and
+            overlap(g[0].bbox_xyxy,candidate.bbox_xyxy)>=.9),None)
+        if group is None:groups.append([candidate])
+        else:group.append(candidate)
+    result=[]
+    for group in groups[:200]:
+        selected=group[0]
+        if len(group)>1:
+            evidence=[DetectionEvidence(**d.model_dump(include={'source','detection_id','bbox_xyxy','confidence','object_id'})) for d in group[:1600]]
+            selected=selected.model_copy(update={'evidence':evidence})
+        result.append(selected)
+    return result

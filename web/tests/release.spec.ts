@@ -15,14 +15,16 @@ test('permission denial shows an error without uploading',async({page})=>{
   await expect(page.locator('main').getByRole('alert')).toContainText('permission denied');expect(uploaded).toBe(false);
 });
 
-for(const mismatch of ['frame','config','dimensions','box']){
+for(const mismatch of ['frame','config','dimensions','box','timestamp','routing']){
   test(`rejects ${mismatch} mismatch and permits a later matching observation`,async({page})=>{
     let attempt=0;
     await session(page);
     await page.route('**/api/live/sessions/release-session/frames',async r=>{
       const body=r.request().postDataJSON();attempt++;
-      const data={...body,session_id:'release-session',source_width:640,source_height:480,observed_at:new Date().toISOString(),detections:[{detection_id:'d',label:'hand',bbox_xyxy:[.1,.1,.5,.5],confidence:.9,source:'mock'}],decisions:[],provider_results:[{provider:'mock',status:'ok',latency_ms:1}],warnings:[]};
+      const data={...body,session_id:'release-session',source_width:640,source_height:480,observed_at:new Date().toISOString(),detections:[{detection_id:'d',label:'hand',bbox_xyxy:[.1,.1,.5,.5],confidence:.9,source:'mock'}],decisions:[],provider_results:[{provider:'mock',status:'ok',latency_ms:1}],warnings:[],routing_revision:0};
       if(attempt===1){
+        if(mismatch==='timestamp')data.captured_at+=1;
+        if(mismatch==='routing')data.routing_revision=1;
         if(mismatch==='frame')data.frame_id+=1;
         if(mismatch==='config')data.config_version+=1;
         if(mismatch==='dimensions')data.source_width+=1;
