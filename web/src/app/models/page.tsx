@@ -102,7 +102,8 @@ export default function Models() {
     [model, setModel] = useState(""),
     [endpoint, setEndpoint] = useState(""),
     [secret, setSecret] = useState(""),
-    [trust, setTrust] = useState("public_only");
+    [trust, setTrust] = useState("public_only"),
+    [agentAuth, setAgentAuth] = useState("bearer");
   let draft: Config | null = null;
   try {
     const c = parse(text, { maxAliasCount: 0 });
@@ -169,6 +170,7 @@ export default function Models() {
             model,
             base_url_env: endpoint,
             api_key_secret: secret || null,
+            ...(adapter === "a2a" ? { auth_mode: agentAuth } : {}),
             capabilities: caps[adapter],
             trust,
           },
@@ -421,6 +423,22 @@ export default function Models() {
               ))}
             </select>
           </label>
+          {adapter === "a2a" && (
+            <label className="text-xs text-muted">
+              Agent authentication
+              <select
+                aria-label="Agent authentication"
+                className={`${field} mt-1 w-full`}
+                value={agentAuth}
+                onChange={(e) => setAgentAuth(e.target.value)}
+              >
+                <option value="bearer">Bearer (must match Agent Card)</option>
+                <option value="path_token">
+                  Agent Zero path token (URL uses t-{"{token}"})
+                </option>
+              </select>
+            </label>
+          )}
           <label className="text-xs text-muted">
             Privacy authorization
             <select

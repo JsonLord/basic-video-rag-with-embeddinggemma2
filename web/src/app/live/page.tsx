@@ -6,6 +6,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { MentorConversation } from "@/components/MentorConversation";
 import { CameraRecorder } from "@/components/live/CameraRecorder";
 import { FramingViewport } from "@/components/live/FramingViewport";
 import { AssociationTracker } from "@/lib/tracking";
@@ -664,6 +665,7 @@ export default function Live() {
   const [observations, setObservations] = useState<Observation[]>([]),
     [combined, setCombined] = useState(true),
     [guidance, setGuidance] = useState(""),
+    [speechTranscript, setSpeechTranscript] = useState(""),
     [goal, setGoal] = useState(""),
     [step, setStep] = useState("Observe"),
     [completed, setCompleted] = useState(false);
@@ -959,7 +961,10 @@ export default function Live() {
         <Microphone
           key={session ?? "disabled"}
           session={session}
-          onText={setGuidance}
+          onText={(text) => {
+            setGuidance(text);
+            setSpeechTranscript(text);
+          }}
           destinations={(
             registry?.features["audio.transcription"]?.providers ?? []
           )
@@ -1052,6 +1057,11 @@ export default function Live() {
           </article>
         ))}
       </section>
+      <MentorConversation
+        session={session}
+        observations={observations}
+        transcript={speechTranscript}
+      />
     </>
   );
 }

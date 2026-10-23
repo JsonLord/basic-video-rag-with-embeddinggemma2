@@ -44,3 +44,38 @@ async def synthetic_inference(name, provider, payload, sensitive):
     raise RuntimeError('Unexpected fixture provider')
 
 vrag.routing.adapter.call = synthetic_inference
+
+# Gate 03/05 fixture: actual application lifecycle + official SDK JSON-RPC wire
+# handling, with deterministic synthetic upstreams and no external calls.
+import json
+import httpx
+from config.v2 import migrate,ProviderV2
+from config.schema import Route
+from vrag import conversation,research_jobs
+from vrag.research import A2AAdapter
+from v3_protocol_fixtures import WireAgent,calls,completion
+
+cfg=migrate(store.history[0])
+cfg.providers['qwen']=ProviderV2(adapter='openai-conversation',model='fixture-qwen',base_url_env='V3_CHAT_URL',capabilities=['conversation'],trust='approved_sensitive')
+cfg.providers['agent']=ProviderV2(adapter='a2a',model='Agent Zero fixture',base_url_env='A2A_URL',api_key_secret='A2A_TOKEN',auth_mode='path_token',capabilities=['research_dispatch'],trust='approved_sensitive')
+cfg.features['mentor.conversation']=Route(providers=['qwen'])
+cfg.features['research.dispatch']=Route(providers=['agent'])
+store.history=[cfg]
+os.environ['V3_CHAT_URL']='https://models.example/v1'
+os.environ['A2A_URL']='https://agent.example/a2a/t-{token}'
+os.environ['A2A_TOKEN']='synthetic-path-key-12345'
+os.environ['VM_ALLOWED_HOSTS']='fixture.invalid,models.example,agent.example'
+
+wire=WireAgent()
+research_jobs.adapter=A2AAdapter(httpx.MockTransport(wire))
+
+def qwen_stream(request):
+    body=json.loads(request.content)
+    if body['messages'][-1]['role']=='tool':
+        response=completion('The clip supports clearing the workbench. Research is running independently.')
+    elif 'Incorporate' in body['messages'][-1]['content']:
+        response=completion('Updated from completed research: clear the workbench. Source: https://docs.example/safety')
+    else:
+        response=calls([('retrieve_video_evidence',{'query':'workbench','k':1}),('dispatch_research',{'goal':'Research safe assembly','agent_id':'documentation_research'})])
+    return httpx.Response(200,headers={'content-type':'text/event-stream'},content=response)
+conversation.adapter.transport=httpx.MockTransport(qwen_stream)
