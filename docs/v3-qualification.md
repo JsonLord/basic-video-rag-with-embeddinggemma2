@@ -26,6 +26,7 @@ the final SHA separately to avoid a self-referential commit hash.
 | 03 conversation | PASS, fixtures/local integration | Durable owned API/SSE/UI, complete correlated tool continuations, grounded index/scene tools, bounded idempotency and cancellation; live model unqualified |
 | 04 optional Phonon | NOT IMPLEMENTED | No mandatory dependency/weights added; pinned engine/license, English fixture and actual 2-vCPU measurements still required |
 | 05 A2A research | PASS, official SDK fixtures/local integration | Durable async submit/poll/cancel, restart reconciliation and structured evidence; live agent key/network qualification pending |
+| 06 live integration | BLOCKED externally; diagnostics/local regression PASS | Qwen/A2A credentials missing, native NVIDIA endpoint unknown, Docker CDN Forbidden; see v3-gate06-report.md |
 | 06 release | PARTIAL / BLOCKED | Production Next build/lint/backend/browser pass; CPU Docker build blocked at registry proxy policy. Physical devices and live/private deployment gates unrun |
 
 The broader v3 UX still needs PiP/composite outputs and clickable object selection;
@@ -206,3 +207,32 @@ Implementation checkpoints:
 - Backend/SDK/tool lifecycle: `fae817c062c84f85fd82b1e835604d67020da2f4`.
 - Live conversation/speech/research UI: `bd0a6339b1280ef2ddaafc176d37de41f309aecd`.
 - The enclosing report commit is recorded by full SHA in Draft PR #3 and delivery.
+
+
+## Gate 06 integration qualification — 24 October 2026
+
+Starting SHA `75085f80e657ac5150951ab94d21192833049b8e`. The standalone Qwen
+qualifier, typed-probe/state isolation fix, compiled frontend secret scan and
+additional HF/A2A/framing tests are implemented. Final regression: **191 backend
+passed, zero skips; 44 browser passed; Next production build passed; lint zero
+errors and one existing warning.** No Gate 06 screenshot baseline changed.
+
+Live Qwen and A2A remain BLOCKED_CREDENTIALS. No live research was authorized or
+submitted. NVIDIA source review identified a native NV-Grounding-DINO candidate,
+not a deployed compatible endpoint; custom detection-http remains intact. Docker
+was actually retried and now fails Forbidden at production.cloudfront.docker.com
+while resolving the pinned Node base, beyond the prior manifest-only blocker.
+Container startup, RAM/CPU, native inference latency and resource p50/p95 remain
+unmeasured; imports/test runtimes are not substitutes. Phonon-2 source/licensing/CPU
+feasibility was reviewed without installing or downloading weights.
+
+The Next build used five synthetic server-secret canaries; 26 compiled browser
+assets (1,361,945 bytes) contained none. This is scoped build evidence, not live HF
+or Docker qualification. All prior implementation/evidence is preserved. Gate 06
+reports: [v3-gate06-report.md](v3-gate06-report.md),
+[live-provider-qualification.md](live-provider-qualification.md),
+[hf-production-checklist.md](hf-production-checklist.md),
+[v3-nvidia-adapter-decision.md](v3-nvidia-adapter-decision.md), and
+[v3-phonon-feasibility.md](v3-phonon-feasibility.md). Raw/machine-readable evidence
+is under v3-evidence/gate06/. No environment publication, Space/inference service
+change, production credential mutation or backup activation occurred.

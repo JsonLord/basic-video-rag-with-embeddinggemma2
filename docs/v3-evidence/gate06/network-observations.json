@@ -1,0 +1,9 @@
+{
+  "observed_configuration_revision": "9",
+  "desired_network_mode_reported_by_environment_status": "unrestricted",
+  "individual_enforcement_state": "unknown",
+  "executor_snapshot_mode": "restricted",
+  "executor_snapshot_lists_docker_cdn": false,
+  "agent_network_settings_changed": false,
+  "agent_published_environment": false
+}

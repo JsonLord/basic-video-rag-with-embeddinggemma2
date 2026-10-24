@@ -1,0 +1,8 @@
+{
+  "version": "v1.3.2",
+  "asset": "age-v1.3.2-linux-amd64.tar.gz",
+  "expected_digest": "sha256:cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10",
+  "actual_digest": "sha256:cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10",
+  "checksum_verified": true,
+  "bytes": 19405817
+}

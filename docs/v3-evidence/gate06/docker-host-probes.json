@@ -1,0 +1,13 @@
+[
+  {
+    "host": "registry-1.docker.io",
+    "status": 404,
+    "headers": {
+      "server": "envoy"
+    }
+  },
+  {
+    "host": "production.cloudfront.docker.com",
+    "status": "network_error"
+  }
+]

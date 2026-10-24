@@ -1,0 +1,28 @@
+{
+  "kind": "actual_docker_build_attempt",
+  "daemon_health": "PASS",
+  "daemon_version": "28.4.0",
+  "status": "BLOCKED_REGISTRY_CDN",
+  "image_requested": "visual-mentor:gate06-75085f8",
+  "base_node_digest": "sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5",
+  "failed_host": "production.cloudfront.docker.com",
+  "observed_error": "Forbidden while fetching pinned Node base metadata/blob",
+  "root_cause_attribution": "UNDETERMINED_PROXY_POLICY_OR_UPSTREAM_CDN",
+  "signed_url_queries_redacted": true,
+  "tls_verification_disabled": false,
+  "proxy_bypassed": false,
+  "mirror_used": false,
+  "daemon_restarted": false,
+  "container_startup": "NOT_RUN_BUILD_BLOCKED",
+  "metrics": {
+    "startup_seconds": null,
+    "idle_ram_bytes": null,
+    "loaded_ram_bytes": null,
+    "cpu_utilization": null,
+    "http_p50_ms": null,
+    "http_p95_ms": null,
+    "inference_p50_ms": null,
+    "inference_p95_ms": null
+  },
+  "mixed_camera_ingestion_conversation_a2a_container_workload": "NOT_RUN_BUILD_BLOCKED"
+}

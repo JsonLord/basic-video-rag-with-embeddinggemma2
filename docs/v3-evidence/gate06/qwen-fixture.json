@@ -1,0 +1,120 @@
+{
+  "kind": "mock_external_openai_qualification",
+  "recorded_at_utc": "2026-10-24T11:01:17.291064+00:00",
+  "status": "PASS",
+  "configuration_present": {
+    "OPENAI_COMPATIBLE_URL": true,
+    "OPENAI_COMPATIBLE_MODEL": true,
+    "OPENAI_COMPATIBLE_API_KEY": true
+  },
+  "checks": {
+    "model_listing": {
+      "status": "PASS",
+      "configured_model_listed": true,
+      "latency_ms": 1.1
+    },
+    "basic_conversation": {
+      "status": "PASS",
+      "reported_model_matches": true,
+      "response_characters": 21,
+      "latency_ms": 0.44
+    },
+    "streaming": {
+      "status": "PASS",
+      "reported_model_matches": true,
+      "response_characters": 39,
+      "time_to_first_token_ms": 3.09,
+      "total_latency_ms": 3.17
+    },
+    "tool_call_emission": {
+      "status": "PASS",
+      "validated_calls": 1,
+      "tools_executed": 0,
+      "latency_ms": 4.13
+    },
+    "correlated_continuation": {
+      "status": "PASS",
+      "correlated_results": 1,
+      "response_characters": 44,
+      "latency_ms": 1.5
+    },
+    "client_cancellation": {
+      "status": "PASS",
+      "response_closed": true,
+      "provider_slot_released": true,
+      "latency_ms": 0.81
+    },
+    "timeout_behavior": {
+      "status": "PASS",
+      "deadline_ms": 100,
+      "observed": "client_timeout",
+      "remote_timeout": "NOT_ASSERTED",
+      "elapsed_ms": 101.09
+    }
+  },
+  "http": [
+    {
+      "phase": "model_listing",
+      "host": "models.example",
+      "status": 200,
+      "response_closed": true,
+      "backend_header_hint": "unknown"
+    },
+    {
+      "phase": "basic_conversation",
+      "host": "models.example",
+      "status": 200,
+      "response_closed": true,
+      "backend_header_hint": "unknown"
+    },
+    {
+      "phase": "streaming",
+      "host": "models.example",
+      "status": 200,
+      "response_closed": true,
+      "x-request-id": "fixture-request-123",
+      "backend_header_hint": "ollama"
+    },
+    {
+      "phase": "tool_call_emission",
+      "host": "models.example",
+      "status": 200,
+      "response_closed": true,
+      "x-request-id": "fixture-request-123",
+      "backend_header_hint": "ollama"
+    },
+    {
+      "phase": "correlated_continuation",
+      "host": "models.example",
+      "status": 200,
+      "response_closed": true,
+      "x-request-id": "fixture-request-123",
+      "backend_header_hint": "ollama"
+    },
+    {
+      "phase": "client_cancellation",
+      "host": "models.example",
+      "status": 200,
+      "response_closed": true,
+      "x-request-id": "fixture-request-123",
+      "backend_header_hint": "ollama"
+    },
+    {
+      "phase": "timeout_behavior",
+      "host": "models.example",
+      "status": 200,
+      "response_closed": true,
+      "backend_header_hint": "unknown"
+    }
+  ],
+  "backend_declared": "ollama",
+  "backend_identity_verified": false,
+  "tool_side_effects": false,
+  "private_media_sent": false,
+  "remote_compute_cancellation": "NOT_OBSERVABLE",
+  "server_authentication_enforcement": "NOT_TESTED",
+  "host": "models.example",
+  "model": "fixture-qwen",
+  "model_identity_verified": true,
+  "total_elapsed_ms": 115.09
+}
