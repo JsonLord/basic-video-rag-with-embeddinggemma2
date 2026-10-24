@@ -57,11 +57,13 @@ class ToolRegistry:
     research handlers and reconciliation live in research_jobs; this boundary never dispatches by model-supplied URL.
     """
     def __init__(self,authorize,handlers=None,connect=None):
-        from .jobs import connect as existing_database
+        if connect is None:
+            from .jobs import connect as existing_database
+            connect=existing_database
         self.authorize=authorize
         self.handlers=dict(handlers or {})
         if not set(self.handlers)<=set(ARGUMENTS):raise ValueError('unknown tool handler')
-        self.connect=connect or existing_database
+        self.connect=connect
         self.slots=asyncio.Semaphore(2)
 
     def definitions(self):
