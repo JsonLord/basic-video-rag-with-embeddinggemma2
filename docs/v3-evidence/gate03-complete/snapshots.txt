@@ -1,0 +1,16 @@
+
+Running 2 tests using 1 worker
+
+(node:121967) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+/workspace/visual-mentor-v3-live/web/tests/studio.spec.ts-snapshots/live-desktop-linux.png is re-generated, writing actual.
+  ✓  1 tests/studio.spec.ts:60:7 › native Live and Models desktop (3.6s)
+/workspace/visual-mentor-v3-live/web/tests/studio.spec.ts-snapshots/live-mobile-linux.png is re-generated, writing actual.
+  ✓  2 tests/studio.spec.ts:60:7 › native Live and Models mobile (2.2s)
+
+  2 passed (8.2s)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

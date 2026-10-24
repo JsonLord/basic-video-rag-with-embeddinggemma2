@@ -1,9 +1,28 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { MentorConversation } from "@/components/MentorConversation";
+import { CameraRecorder } from "@/components/live/CameraRecorder";
+import { FramingViewport } from "@/components/live/FramingViewport";
+import { AssociationTracker } from "@/lib/tracking";
 import { AccessToken } from "@/components/AccessToken";
 import { api, matchesObservation, Observation } from "@/lib/mentor";
 
+// Interactive media controls must wait for client hydration.
+const subscribeHydration = () => () => {};
+const clientReady = () => true;
+const serverReady = () => false;
+function useClientReady() {
+  return useSyncExternalStore(subscribeHydration, clientReady, serverReady);
+}
+
 type Registry = {
+  routing_revision?: number;
   config_version: number;
   providers: Record<string, { destination: string | null }>;
   features: Record<string, { enabled: boolean; providers: string[] }>;
@@ -21,10 +40,18 @@ function Camera({
   registry: Registry | null;
   onObservation: (o: Observation) => void;
 }) {
+  const hydrated = useClientReady();
   const video = useRef<HTMLVideoElement>(null);
+  const framedCanvas = useRef<HTMLCanvasElement>(null);
+  const recorderStop = useRef<((reason?: string) => void) | null>(null);
+  const [recordingBusy, setRecordingBusy] = useState(false);
+  const [tracker] = useState(() => new AssociationTracker(slot, 10000));
   const stream = useRef<MediaStream | null>(null);
   const pending = useRef(false);
   const generation = useRef(0);
+  const invalidate = useCallback(() => {
+    generation.current++;
+  }, []);
   const frame = useRef(0);
   const abort = useRef<AbortController | null>(null);
   const [device, setDevice] = useState("");
@@ -43,6 +70,10 @@ function Camera({
     image: string;
   } | null>(null);
   const stop = useCallback(() => {
+    recorderStop.current?.(
+      "Recording interrupted: camera stopped or device changed.",
+    );
+    tracker.reset();
     generation.current++;
     abort.current?.abort();
     stream.current?.getTracks().forEach((t) => t.stop());
@@ -51,15 +82,20 @@ function Camera({
     setActive(false);
     setSendSession(null);
     setResult(null);
-  }, []);
-  useEffect(
-    () => () => {
-      generation.current++;
+  }, [tracker]);
+  useEffect(() => {
+    const element = video.current;
+    return () => {
+      invalidate();
       abort.current?.abort();
       stream.current?.getTracks().forEach((t) => t.stop());
-    },
-    [],
-  );
+      stream.current = null;
+      if (element) element.srcObject = null;
+      tracker.reset();
+      setActive(false);
+      setResult(null);
+    };
+  }, [invalidate, tracker]);
   useEffect(() => {
     const hide = () => {
       if (document.hidden) stop();
@@ -135,7 +171,8 @@ function Camera({
     const image = canvas.toDataURL("image/jpeg", 0.7),
       id = ++frame.current,
       requestId = crypto.randomUUID(),
-      g = generation.current;
+      g = generation.current,
+      capturedAt = performance.now();
     pending.current = true;
     abort.current = new AbortController();
     try {
@@ -144,7 +181,8 @@ function Camera({
         {
           camera_id: slot,
           frame_id: id,
-          captured_at: performance.now(),
+          captured_at: capturedAt,
+          routing_revision: registry.routing_revision ?? 0,
           image,
           feature,
           config_version: registry.config_version,
@@ -164,8 +202,11 @@ function Camera({
           version: registry.config_version,
           width: canvas.width,
           height: canvas.height,
+          capturedAt,
+          routingRevision: registry.routing_revision ?? 0,
         })
       ) {
+        tracker.update(o.detections, o.captured_at);
         setResult({ observation: o, image });
         onObservation(o);
         setError("");
@@ -177,7 +218,17 @@ function Camera({
     } finally {
       pending.current = false;
     }
-  }, [session, send, active, registry, width, slot, feature, onObservation]);
+  }, [
+    session,
+    send,
+    active,
+    registry,
+    width,
+    slot,
+    feature,
+    onObservation,
+    tracker,
+  ]);
   useEffect(() => {
     if (!send) return;
     const timer = setInterval(() => void analyze(), 1000 / fps);
@@ -233,6 +284,7 @@ function Camera({
         </select>
         <button
           className="rounded-lg border border-line px-3 py-2 text-sm hover:bg-surface-2"
+          disabled={!hydrated}
           onClick={() => void start()}
         >
           Start preview
@@ -306,6 +358,7 @@ function Camera({
           <input
             type="checkbox"
             checked={mirror}
+            disabled={recordingBusy}
             onChange={(e) => setMirror(e.target.checked)}
           />{" "}
           Mirror
@@ -333,6 +386,7 @@ function Camera({
             generation.current++;
             abort.current?.abort();
             setResult(null);
+            tracker.reset();
             setFeature(e.target.value);
           }}
         >
@@ -351,6 +405,7 @@ function Camera({
               generation.current++;
               abort.current?.abort();
               setResult(null);
+              tracker.reset();
               setSendSession(e.target.checked ? session : null);
             }}
           />{" "}
@@ -368,6 +423,23 @@ function Camera({
         {send ? "Sending sampled frames" : "Local preview only"} · Destination:{" "}
         {destinations || "none"} · One request in flight maximum.
       </p>
+      <FramingViewport
+        slot={slot}
+        video={video}
+        canvas={framedCanvas}
+        tracker={tracker}
+        active={active}
+        mirror={mirror}
+        locked={recordingBusy}
+      />
+      <CameraRecorder
+        slot={slot}
+        video={video}
+        canvas={framedCanvas}
+        active={active}
+        stopRef={recorderStop}
+        onBusy={setRecordingBusy}
+      />
       {error && (
         <p role="alert" className="text-red-300 my-2">
           {error}
@@ -584,6 +656,7 @@ function Microphone({
 }
 
 export default function Live() {
+  const hydrated = useClientReady();
   const [reset, setReset] = useState(0),
     [devices, setDevices] = useState<MediaDeviceInfo[]>([]),
     [session, setSession] = useState<string | null>(null),
@@ -592,6 +665,7 @@ export default function Live() {
   const [observations, setObservations] = useState<Observation[]>([]),
     [combined, setCombined] = useState(true),
     [guidance, setGuidance] = useState(""),
+    [speechTranscript, setSpeechTranscript] = useState(""),
     [goal, setGoal] = useState(""),
     [step, setStep] = useState("Observe"),
     [completed, setCompleted] = useState(false);
@@ -712,19 +786,21 @@ export default function Live() {
       <h1 className="text-2xl font-semibold">Live Visual Mentor</h1>
       <p className="text-ink-2 my-2">
         Two local camera previews. Frame and microphone transfer require
-        explicit actions. No recording is stored by the server.
+        explicit actions. Recordings stay local until an explicit authenticated
+        import.
       </p>
       <AccessToken />
       <div className="flex flex-wrap gap-3 my-4">
         <button
           className="rounded-lg border border-line px-3 py-2 text-sm hover:bg-surface-2"
+          disabled={!hydrated}
           onClick={() => void enumerate()}
         >
           Grant camera permission & list devices
         </button>
         <button
           className="rounded-lg border border-line px-3 py-2 text-sm hover:bg-surface-2"
-          disabled={!!session}
+          disabled={!hydrated || !!session}
           onClick={() => void enable()}
         >
           Authorize analysis session
@@ -800,7 +876,10 @@ export default function Live() {
                 setReset((n) => n + 1);
                 setObservations([]);
                 try {
-                  const r = await api<{ features: Registry["features"] }>(
+                  const r = await api<{
+                    features: Registry["features"];
+                    routing_revision?: number;
+                  }>(
                     `/api/live/sessions/${session}/routing`,
                     {
                       config_version: registry.config_version,
@@ -814,7 +893,11 @@ export default function Live() {
                     false,
                     "PUT",
                   );
-                  setRegistry({ ...registry, features: r.features });
+                  setRegistry({
+                    ...registry,
+                    features: r.features,
+                    routing_revision: r.routing_revision ?? 0,
+                  });
                 } catch (e) {
                   setError(String(e));
                 }
@@ -878,7 +961,10 @@ export default function Live() {
         <Microphone
           key={session ?? "disabled"}
           session={session}
-          onText={setGuidance}
+          onText={(text) => {
+            setGuidance(text);
+            setSpeechTranscript(text);
+          }}
           destinations={(
             registry?.features["audio.transcription"]?.providers ?? []
           )
@@ -971,6 +1057,11 @@ export default function Live() {
           </article>
         ))}
       </section>
+      <MentorConversation
+        session={session}
+        observations={observations}
+        transcript={speechTranscript}
+      />
     </>
   );
 }

@@ -1,0 +1,13 @@
+
+Running 1 test using 1 worker
+
+(node:57980) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/recording.spec.ts:11:5 › real dual simulated-camera encoding, independent lifecycle, replay/download/delete and explicit import (5.9s)
+
+  1 passed (8.7s)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

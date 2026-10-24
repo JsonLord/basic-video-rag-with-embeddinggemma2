@@ -1,0 +1,31 @@
+{
+  "starting_sha": "7c2c1a87164d94a49105f374580703ff61e7bf1c",
+  "branch": "feature/visual-mentor-v3-live",
+  "gate02_core_sha": "3ac1c248c69fb25f7b2bf660ddd968cd317d2bbb",
+  "gate03_foundation_sha": "7eb2de06abb0dc9c19d6abca4545763f55c91da1",
+  "code_sha": "7ed67b8b34a9cadafce0ca44361adc38f166eaee",
+  "tests": {
+    "gate02_backend": 144,
+    "gate02_browser": 42,
+    "final_backend": 159,
+    "final_browser": 42,
+    "final_skipped": 0,
+    "lint_errors": 0,
+    "lint_existing_warnings": 1,
+    "next_production_build": "pass"
+  },
+  "live_provider_calls": false,
+  "github_backup_transport": "mock",
+  "age_encryption": "real; v1.3.2 previously checksum-verified",
+  "docker_build": "BLOCKED; previous registry policy denial; not retried in this continuation",
+  "deployment": "not attempted",
+  "recurring_workflows": "unchanged/inactive",
+  "gate03": "foundation only; full chat orchestration/UI pending",
+  "runtime_variable_presence": {
+    "OPENAI_COMPATIBLE_URL": false,
+    "OPENAI_COMPATIBLE_MODEL": false,
+    "OPENAI_COMPATIBLE_API_KEY": false,
+    "A2A_URL": false,
+    "A2A_TOKEN": false
+  }
+}

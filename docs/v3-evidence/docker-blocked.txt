@@ -1,0 +1,21 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.95kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5
+#3 ERROR: failed to do request: Head "https://registry-1.docker.io/v2/library/node/manifests/sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5": Forbidden
+------
+ > [internal] load metadata for docker.io/library/node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5:
+------
+Dockerfile:1
+--------------------
+   1 | >>> FROM node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5 AS web
+   2 |     WORKDIR /build/web
+   3 |     ENV NEXT_TELEMETRY_DISABLED=1
+--------------------
+ERROR: failed to build: failed to solve: node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5: failed to resolve source metadata for docker.io/library/node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5: failed to do request: Head "https://registry-1.docker.io/v2/library/node/manifests/sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5": Forbidden

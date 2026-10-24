@@ -1,0 +1,153 @@
+{
+  "recorded_at_utc": "2026-10-24T11:16:42.838524+00:00",
+  "starting_sha": "75085f80e657ac5150951ab94d21192833049b8e",
+  "implementation_sha": "317fe5ce613f6d175653ffb0354870d9e319a989",
+  "branch": "feature/visual-mentor-v3-live",
+  "production_decision": "NO_GO",
+  "tests": {
+    "backend": {
+      "passed": 191,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "category": [
+        "mock_external",
+        "real_local_sqlite_ffmpeg_age",
+        "fresh_process_recovery"
+      ]
+    },
+    "browser": {
+      "passed": 44,
+      "failed": 0,
+      "category": [
+        "simulated_cameras_microphone",
+        "real_local_http_ingestion_index_playback",
+        "mock_provider_and_a2a_protocols"
+      ]
+    },
+    "next_build": "PASS",
+    "lint": {
+      "errors": 0,
+      "existing_warnings": 1
+    },
+    "frontend_secret_scan": {
+      "kind": "compiled_frontend_credential_scan",
+      "variables": [
+        "OPENAI_COMPATIBLE_API_KEY",
+        "A2A_TOKEN",
+        "VM_USER_TOKEN",
+        "VM_ADMIN_TOKEN",
+        "VM_BACKUP_GITHUB_TOKEN"
+      ],
+      "missing_variables": [],
+      "status": "PASS",
+      "files_scanned": 26,
+      "bytes_scanned": 1361945,
+      "matches": [],
+      "input_category": "synthetic_canaries_in_server_environment_during_actual_next_build"
+    }
+  },
+  "live_qwen": {
+    "kind": "live_external_openai_qualification",
+    "recorded_at_utc": "2026-10-24T11:01:16.755894+00:00",
+    "status": "BLOCKED_CREDENTIALS",
+    "configuration_present": {
+      "OPENAI_COMPATIBLE_URL": false,
+      "OPENAI_COMPATIBLE_MODEL": false,
+      "OPENAI_COMPATIBLE_API_KEY": false
+    },
+    "checks": {},
+    "http": [],
+    "backend_declared": "unknown",
+    "backend_identity_verified": false,
+    "tool_side_effects": false,
+    "private_media_sent": false,
+    "remote_compute_cancellation": "NOT_OBSERVABLE",
+    "server_authentication_enforcement": "NOT_TESTED",
+    "total_elapsed_ms": 0.02
+  },
+  "mock_qwen": {
+    "status": "PASS",
+    "artifact": "qwen-fixture.json",
+    "requests": 7,
+    "model_performance_attested": false
+  },
+  "live_a2a": {
+    "recorded_at_utc": "2026-10-24T10:46:59.682287+00:00",
+    "kind": "live_external_a2a_discovery",
+    "status": "BLOCKED_CREDENTIALS",
+    "probe_exit_code": 2,
+    "probe": {
+      "kind": "live_external_agent_card",
+      "task_submitted": false,
+      "host": "leon4gr45-openoperator.hf.space",
+      "credential_present": false,
+      "status": "blocked",
+      "error": "secure_environment_missing"
+    },
+    "application_destination_authorized": false,
+    "research_task_status": "NOT_AUTHORIZED_NOT_SUBMITTED",
+    "live_proxy_substitution": "NOT_TESTED"
+  },
+  "nvidia": {
+    "native_status": "BLOCKED_ENDPOINT_AND_CONTRACT",
+    "candidate": "NVIDIA NV-Grounding-DINO",
+    "native_adapter_added": false,
+    "existing_detection_http_preserved": true,
+    "native_latency_p50_ms": null,
+    "native_latency_p95_ms": null
+  },
+  "docker": {
+    "kind": "actual_docker_build_attempt",
+    "daemon_health": "PASS",
+    "daemon_version": "28.4.0",
+    "status": "BLOCKED_REGISTRY_CDN",
+    "image_requested": "visual-mentor:gate06-75085f8",
+    "base_node_digest": "sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5",
+    "failed_host": "production.cloudfront.docker.com",
+    "observed_error": "Forbidden while fetching pinned Node base metadata/blob",
+    "root_cause_attribution": "UNDETERMINED_PROXY_POLICY_OR_UPSTREAM_CDN",
+    "signed_url_queries_redacted": true,
+    "tls_verification_disabled": false,
+    "proxy_bypassed": false,
+    "mirror_used": false,
+    "daemon_restarted": false,
+    "container_startup": "NOT_RUN_BUILD_BLOCKED",
+    "metrics": {
+      "startup_seconds": null,
+      "idle_ram_bytes": null,
+      "loaded_ram_bytes": null,
+      "cpu_utilization": null,
+      "http_p50_ms": null,
+      "http_p95_ms": null,
+      "inference_p50_ms": null,
+      "inference_p95_ms": null
+    },
+    "mixed_camera_ingestion_conversation_a2a_container_workload": "NOT_RUN_BUILD_BLOCKED"
+  },
+  "phonon": {
+    "status": "SOURCE_REVIEW_ONLY",
+    "weights_downloaded": false,
+    "installed": false,
+    "runtime_measured": false,
+    "default_transcription_preserved": true
+  },
+  "production_safety": {
+    "deployed": false,
+    "space_settings_changed": false,
+    "production_credentials_changed": false,
+    "environment_draft_published": false,
+    "external_research_submitted": false,
+    "shared_service_restart": false,
+    "backup_schedule_activated": false
+  },
+  "pending_operator_actions": [
+    "supply actual approved Qwen URL/model/key securely",
+    "make A2A_TOKEN available to the probe and authorize its hostname",
+    "qualify read-only Agent Card and URL-path proxy substitution",
+    "separately authorize one bounded harmless live A2A lifecycle test",
+    "identify actual NVIDIA model/endpoint/response contract and permit benchmarking",
+    "resolve Docker CDN transport and qualify actual image and mixed-load resources",
+    "approve private staging/auth/recovery qualification before production deployment or scheduling"
+  ]
+}

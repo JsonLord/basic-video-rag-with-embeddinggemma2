@@ -1,0 +1,94 @@
+{
+  "recorded_at_utc": "2026-10-24T11:01:16.564090+00:00",
+  "kind": "upstream_source_inspection_not_deployed_service_attestation",
+  "sources": [
+    {
+      "repository": "fermionresearch/phonon",
+      "revision": "36760a4f5281f7d94d20c37387381af4dda5184c",
+      "path": "docs/cpu.md",
+      "blob": "598c37f57f872c5c887e0c00e173b435682297dc",
+      "sha256": "a4d2d05410ed63b79578c2509bb5ec7f1f1e4a759a8bd87b4ca9f92edf1e9247",
+      "url": "https://github.com/fermionresearch/phonon/blob/36760a4f5281f7d94d20c37387381af4dda5184c/docs/cpu.md"
+    },
+    {
+      "repository": "fermionresearch/phonon",
+      "revision": "36760a4f5281f7d94d20c37387381af4dda5184c",
+      "path": "docs/install.md",
+      "blob": "adef90178699d7bc146e5e91786d993e8188bde7",
+      "sha256": "2b5ea2e5780c8f52148987b3998f32d2ccb213d41073cd82a870e14b39d0ad4c",
+      "url": "https://github.com/fermionresearch/phonon/blob/36760a4f5281f7d94d20c37387381af4dda5184c/docs/install.md"
+    },
+    {
+      "repository": "fermionresearch/phonon",
+      "revision": "36760a4f5281f7d94d20c37387381af4dda5184c",
+      "path": "README.md",
+      "blob": "67f84fb1d04857ee3ca72cde5828e203a3b427d1",
+      "sha256": "7703118fbf1f2fe4f0ba14bbed8680660bdd5abfc98f3d13218802c94dae58a4",
+      "url": "https://github.com/fermionresearch/phonon/blob/36760a4f5281f7d94d20c37387381af4dda5184c/README.md"
+    },
+    {
+      "repository": "fermionresearch/phonon",
+      "revision": "36760a4f5281f7d94d20c37387381af4dda5184c",
+      "path": "LICENSE",
+      "blob": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "url": "https://github.com/fermionresearch/phonon/blob/36760a4f5281f7d94d20c37387381af4dda5184c/LICENSE"
+    },
+    {
+      "repository": "fermionresearch/phonon",
+      "revision": "36760a4f5281f7d94d20c37387381af4dda5184c",
+      "path": "docker-cpu/model.py",
+      "blob": "0a78c562f01b51d667e4743d69cb579b17ea7ecf",
+      "sha256": "0e71bde396ca66797354f6df89936f45a4eed037a3eaab1c4dcc858f1894dd46",
+      "url": "https://github.com/fermionresearch/phonon/blob/36760a4f5281f7d94d20c37387381af4dda5184c/docker-cpu/model.py"
+    },
+    {
+      "repository": "ollama/ollama",
+      "revision": "675150d6ad2747df1e218ef59de9194bc4a7e538",
+      "path": "docs/api/openai-compatibility.mdx",
+      "blob": "75218fc8f8044a8d0c0f0adc6c77684fec57711f",
+      "sha256": "44071a1277796b5ad28e51e561afd94ac75f6f76cd75c4b8d9d80b9dff760cd5",
+      "url": "https://github.com/ollama/ollama/blob/675150d6ad2747df1e218ef59de9194bc4a7e538/docs/api/openai-compatibility.mdx"
+    },
+    {
+      "repository": "vllm-project/vllm",
+      "revision": "7a64fb8fc9239cb65e0df9313fa759594dfb206a",
+      "path": "docs/features/tool_calling.md",
+      "blob": "fcac78c6440db72d8003fe838f0bdded93305cf4",
+      "sha256": "abb5e78d837574927d2efa453efb153ab553cad0fc3c4b2bc3a48439f1999b8d",
+      "url": "https://github.com/vllm-project/vllm/blob/7a64fb8fc9239cb65e0df9313fa759594dfb206a/docs/features/tool_calling.md"
+    },
+    {
+      "repository": "NVIDIA/Multi-Model-Workflows",
+      "revision": "453688dfb8b0b8ba1d0755fcb611d1576fbb11d8",
+      "path": "cv_nim/gdino_nim.py",
+      "blob": "41753521bd6ab2343384582e2bfef0511045617a",
+      "sha256": "349323a53ed37735e9a319c4d02a900781d198a4e83e3c3d90844a4d94a98a93",
+      "url": "https://github.com/NVIDIA/Multi-Model-Workflows/blob/453688dfb8b0b8ba1d0755fcb611d1576fbb11d8/cv_nim/gdino_nim.py"
+    },
+    {
+      "repository": "NVIDIA-Omniverse/usd-content-agents",
+      "revision": "0709377ed35fb066361a0d6735d21984b885fe36",
+      "path": "world_understanding/functions/cv/grounding_dino.py",
+      "blob": "82207a23e5158520ed5f0c235c5d5f17f82db18a",
+      "sha256": "5fef692ecdc582fadac493ad332a439fe25e5c1eeaf3274620c7438431dd7b6a",
+      "url": "https://github.com/NVIDIA-Omniverse/usd-content-agents/blob/0709377ed35fb066361a0d6735d21984b885fe36/world_understanding/functions/cv/grounding_dino.py"
+    },
+    {
+      "repository": "fermionresearch/phonon",
+      "revision": "36760a4f5281f7d94d20c37387381af4dda5184c",
+      "path": "docker-cpu-phonon2/Dockerfile",
+      "blob": "2ca50d3e883b4777344ed17da591a8041c7c5313",
+      "sha256": "16b249bae1e07e8cf5284f36d932e8bd61d639fcad41bc04cb7765450be830a9",
+      "url": "https://github.com/fermionresearch/phonon/blob/36760a4f5281f7d94d20c37387381af4dda5184c/docker-cpu-phonon2/Dockerfile"
+    },
+    {
+      "repository": "fermionresearch/phonon",
+      "revision": "36760a4f5281f7d94d20c37387381af4dda5184c",
+      "path": "docker-cpu-phonon2/entrypoint.sh",
+      "blob": "c20c2467343a8cecd8b615a027de16d6cfe8071d",
+      "sha256": "c3922428aeba9fc4738a6b63d3a7650a521b6f8bbecbfedb188a5dbb6c63c2dc",
+      "url": "https://github.com/fermionresearch/phonon/blob/36760a4f5281f7d94d20c37387381af4dda5184c/docker-cpu-phonon2/entrypoint.sh"
+    }
+  ]
+}

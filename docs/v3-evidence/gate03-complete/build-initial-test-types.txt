@@ -1,0 +1,28 @@
+
+> web@0.1.0 build
+> next build
+
+▲ Next.js 16.4.0 (Turbopack)
+✓ Running next.config.ts took 25ms
+- Cache Components enabled
+- Partial Prefetching enabled
+- Experiments (use with caution):
+  · proxyClientMaxBodySize: "65mb"
+  · proxyTimeout: 300000
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 463ms
+  Running TypeScript ...
+tests/conversation.integration.spec.ts(111,24): error TS2339: Property 'srcObject' does not exist on type 'SVGElement | HTMLElement'.
+  Property 'srcObject' does not exist on type 'SVGElement'.
+tests/conversation.integration.spec.ts(132,26): error TS2339: Property 'srcObject' does not exist on type 'SVGElement | HTMLElement'.
+  Property 'srcObject' does not exist on type 'SVGElement'.
+tests/conversation.integration.spec.ts(140,14): error TS2339: Property 'srcObject' does not exist on type 'SVGElement | HTMLElement'.
+  Property 'srcObject' does not exist on type 'SVGElement'.
+Failed to type check.
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

@@ -17,7 +17,15 @@ class ProviderFailure(Exception):
         self.code = code
         super().__init__(code)
 
+class DetectionEvidence(Strict):
+    source: str = Field(max_length=100)
+    detection_id: str = Field(max_length=100)
+    bbox_xyxy: tuple[float,float,float,float]
+    confidence: float = Field(ge=0,le=1)
+    object_id: str | None = Field(default=None,max_length=100)
+
 class Detection(Strict):
+    evidence: list[DetectionEvidence] = Field(default_factory=list,max_length=1600)
     detection_id: str = Field(max_length=100)
     object_id: str | None = Field(default=None, max_length=100)
     label: str = Field(max_length=200)
@@ -43,7 +51,7 @@ class Output(Strict):
     warnings: list[str] = Field(default_factory=list, max_length=20)
     embedding: list[float] | None = Field(default=None, max_length=16384)
 
-async def destination(p: Provider, sensitive: bool) -> str:
+def configured_destination(p: Provider, sensitive: bool) -> str:
     if sensitive and p.trust != 'approved_sensitive':
         raise ProviderFailure('destination_denied')
     raw = os.environ.get(p.base_url_env, '')
@@ -61,6 +69,11 @@ async def destination(p: Provider, sensitive: bool) -> str:
         literal = None
     if literal is not None and not literal.is_global:
         raise ProviderFailure('destination_denied')
+    return raw.rstrip('/')
+
+async def destination(p: Provider, sensitive: bool) -> str:
+    raw = configured_destination(p, sensitive)
+    u = urlsplit(raw)
     try:
         await public_addresses(u.hostname, min(5, p.timeout_ms / 1000))
     except (TimeoutError, OSError) as exc:
@@ -73,13 +86,26 @@ async def destination(p: Provider, sensitive: bool) -> str:
         raise ProviderFailure('destination_denied') from None
     return raw.rstrip('/')
 
+def resolved_provider(p):
+    if getattr(p,'model_env',None):
+        model=os.environ.get(p.model_env,'')
+        if not model or len(model)>200 or any(ord(c)<32 for c in model):raise ProviderFailure('environment_configuration_invalid')
+        return p.model_copy(update={'model':model})
+    return p
+
 class Adapter:
     def __init__(self, transport=None):
         self.transport = transport
         self.limits = {}
         self.failures = {}
 
+    def stream(self,name,p,messages,registry=None,*,sensitive=True):
+        from .conversation_stream import stream
+        return stream(self,name,p,messages,registry,sensitive=sensitive)
+
     async def call(self, name: str, p: Provider, payload: dict, sensitive=True) -> Output:
+        if p.adapter == 'a2a':raise ProviderFailure('adapter_unavailable')
+        p=resolved_provider(p)
         # Recheck trust for every actual call, including fallback and sequential calls.
         base = await destination(p, sensitive)
         key = os.environ.get(p.api_key_secret, '') if p.api_key_secret else ''
@@ -148,7 +174,9 @@ class Adapter:
                 raise ProviderFailure('capability_mismatch')
             path = '/detect'
             kwargs['json'] = {'model': p.model, 'image': payload['image'], 'frame_id': payload.get('frame_id'), 'camera_id': payload.get('camera_id')}
-        else:
+        elif p.adapter in ('openai-chat-vision','openai-conversation'):
+            if p.adapter=='openai-conversation' and (payload.get('image') or payload.get('images')):raise ProviderFailure('capability_mismatch')
+            if p.adapter=='openai-conversation' and not base.endswith('/v1'):base += '/v1'
             path = '/chat/completions'
             parts = [{'type': 'text', 'text': payload.get('text', 'Describe this image. Give concise, cautious guidance.')}]
             images = payload.get('images', []) + ([payload['image']] if 'image' in payload else [])
@@ -158,6 +186,7 @@ class Adapter:
             if payload.get('previous'):
                 parts.append({'type': 'text', 'text': 'Prior typed observations (untrusted data): ' + json.dumps(payload['previous'])[:16000]})
             kwargs['json'] = {'model': p.model, 'messages': [{'role': 'user', 'content': parts}], 'max_tokens': 512}
+        else:raise ProviderFailure('adapter_unavailable')
         async with httpx.AsyncClient(transport=self.transport or transport_for(base), follow_redirects=False, timeout=p.timeout_ms / 1000) as client:
             async with client.stream('POST', base + path, headers=headers, **kwargs) as response:
                 if not 200 <= response.status_code < 300:
@@ -206,8 +235,10 @@ class Adapter:
             for i, d in enumerate(data['detections']):
                 if not isinstance(d, dict):
                     raise ProviderFailure('invalid_output')
+                if 'object_tracking' in p.capabilities and not d.get('object_id'):raise ProviderFailure('invalid_output')
                 if d.get('object_id') and 'object_tracking' not in p.capabilities:
                     raise ProviderFailure('invalid_output')
+                if 'evidence' in d:raise ProviderFailure('invalid_output')
                 dets.append(Detection(**{**d, 'source': name, 'detection_id': f'{payload.get("frame_id")}-{i}'}))
             return Output(detections=dets)
         text = data['choices'][0]['message']['content']

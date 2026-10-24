@@ -1,0 +1,45 @@
+{
+  "kind": "source_review_not_runtime_qualification",
+  "package": {
+    "name": "fermion-research",
+    "version": "0.2.14",
+    "license": "Apache-2.0",
+    "requires_python": ">=3.10",
+    "requires_dist": [
+      "torch>=2.3; sys_platform != \"darwin\" or platform_machine != \"x86_64\"",
+      "torch<2.3,>=2.2; sys_platform == \"darwin\" and platform_machine == \"x86_64\"",
+      "transformers>=5.0; sys_platform != \"darwin\" or platform_machine != \"x86_64\"",
+      "transformers<5.1,>=5.0; sys_platform == \"darwin\" and platform_machine == \"x86_64\"",
+      "numpy>=1.26; sys_platform != \"darwin\" or platform_machine != \"x86_64\"",
+      "numpy<2,>=1.26; sys_platform == \"darwin\" and platform_machine == \"x86_64\"",
+      "huggingface_hub>=0.23",
+      "safetensors",
+      "soundfile",
+      "scipy",
+      "zstandard",
+      "mlx; (sys_platform == \"darwin\" and platform_machine == \"arm64\") and extra == \"mlx\"",
+      "mlx-audio; (sys_platform == \"darwin\" and platform_machine == \"arm64\") and extra == \"mlx\"",
+      "mlx-lm; (sys_platform == \"darwin\" and platform_machine == \"arm64\") and extra == \"mlx\""
+    ]
+  },
+  "model": {
+    "repository": "FermionResearch/Phonon-2",
+    "revision": "3e6ab3a81d73b4d424ff34cc72535deb606378ef",
+    "license": "cc-by-4.0",
+    "download_bytes": 163515201,
+    "unpacked_bytes": 177716675,
+    "artifact_sha256": "98125795b6dda72f5c6eee9ba33d19815df65dcb18b50a357bf9f73c9935309e"
+  },
+  "development_machine": {
+    "architecture": "x86_64",
+    "sse4_1": true,
+    "avx2": true,
+    "avx512_vnni": false
+  },
+  "weights_downloaded": false,
+  "installed": false,
+  "runtime_ram_bytes": null,
+  "latency_p50_ms": null,
+  "latency_p95_ms": null,
+  "decision": "DEFER_DISABLED_KEEP_REMOTE_ASR_FALLBACK"
+}

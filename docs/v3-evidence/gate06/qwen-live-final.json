@@ -1,0 +1,19 @@
+{
+  "kind": "live_external_openai_qualification",
+  "recorded_at_utc": "2026-10-24T11:01:16.755894+00:00",
+  "status": "BLOCKED_CREDENTIALS",
+  "configuration_present": {
+    "OPENAI_COMPATIBLE_URL": false,
+    "OPENAI_COMPATIBLE_MODEL": false,
+    "OPENAI_COMPATIBLE_API_KEY": false
+  },
+  "checks": {},
+  "http": [],
+  "backend_declared": "unknown",
+  "backend_identity_verified": false,
+  "tool_side_effects": false,
+  "private_media_sent": false,
+  "remote_compute_cancellation": "NOT_OBSERVABLE",
+  "server_authentication_enforcement": "NOT_TESTED",
+  "total_elapsed_ms": 0.02
+}

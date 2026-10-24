@@ -1,0 +1,11 @@
+{
+  "kind": "clean_frozen_base_runtime_import",
+  "a2a_sdk": "0.3.26",
+  "api_title": "Visual Mentor",
+  "forbidden_packages_present": {
+    "torch": false,
+    "transformers": false,
+    "vllm": false
+  },
+  "container_tested": false
+}

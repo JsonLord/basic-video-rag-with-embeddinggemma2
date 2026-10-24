@@ -28,9 +28,17 @@ async def lifespan(app):
     jobs_task = asyncio.create_task(worker())
     from .backup.service import configured, queue
     backup_task = asyncio.create_task(queue.run()) if configured() else None
+    from .mentor_state import recover_turns
+    from .research_jobs import coordinator
+    recover_turns()
+    research_task=asyncio.create_task(coordinator())
     try:
         yield
     finally:
+        from .conversation import shutdown
+        await shutdown()
+        research_task.cancel()
+        await asyncio.gather(research_task,return_exceptions=True)
         if backup_task:
             backup_task.cancel()
             await asyncio.gather(backup_task, return_exceptions=True)
@@ -274,3 +282,8 @@ async def safe_request_validation(request: Request, exc: RequestValidationError)
 
 from .jobs import router as jobs_router
 app.include_router(jobs_router)
+
+from .conversation import router as conversation_router
+from .research_jobs import router as research_router
+app.include_router(conversation_router)
+app.include_router(research_router)

@@ -138,4 +138,15 @@ def parse_yaml(text: str) -> Configuration:
             result[key] = loader.construct_object(v)
         return result
     UniqueLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, mapping)
-    return Configuration.model_validate(yaml.load(text, Loader=UniqueLoader))
+    return parse_configuration(yaml.load(text, Loader=UniqueLoader))
+
+
+def parse_configuration(value):
+    if not isinstance(value,dict):raise ValueError('configuration must be an object')
+    version=value.get('version',1)
+    if isinstance(version,bool):raise ValueError('unsupported schema version')
+    if version==1:return Configuration.model_validate(value)
+    if version==2:
+        from .v2 import ConfigurationV2
+        return ConfigurationV2.model_validate(value)
+    raise ValueError('unsupported schema version')

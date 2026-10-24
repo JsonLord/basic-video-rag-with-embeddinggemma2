@@ -17,8 +17,8 @@ from PIL import Image, UnidentifiedImageError
 from pydantic import Field, ValidationError
 import yaml
 
-from config.schema import Strict, parse_yaml
-from .providers import Decision, Detection, ProviderFailure, destination
+from config.schema import Strict, parse_yaml, parse_configuration
+from .providers import Decision, Detection, ProviderFailure, destination, resolved_provider
 from .routing import route
 from .settings import store
 
@@ -51,6 +51,9 @@ class ConfigInput(Strict):
     yaml: str = Field(max_length=65536)
     expected_version: int = Field(default=1, ge=1)
 
+class MigrationInput(ConfigInput):
+    include_environment_defaults: bool = False
+
 class Rollback(Strict):
     version: int = Field(ge=1)
     expected_version: int = Field(ge=1)
@@ -69,14 +72,23 @@ class FrameInput(Strict):
     image: str = Field(max_length=1500000)
     feature: str = Field(min_length=1, max_length=100)
     config_version: int = Field(ge=1)
+    routing_revision: int | None = Field(default=None,ge=0)
     request_id: str = Field(max_length=100)
 
 class ProviderStatus(Strict):
     provider: str
     status: str
     latency_ms: int
+    capability_version: int = 1
+    frame_id: int | None = None
+    camera_id: str | None = None
+    captured_at: float | None = None
+    config_version: int | None = None
 
 class Observation(Strict):
+    schema_version: int = 1
+    history_revision: int = 1
+    routing_revision: int = 0
     session_id: str
     camera_id: str
     frame_id: int
@@ -141,22 +153,58 @@ def provider_host(p):
     except ValueError:
         return None
 
+def runtime_snapshot():
+    from .runtime_config import with_environment_defaults
+    version,cfg=store.snapshot()
+    try:return version,with_environment_defaults(cfg)
+    except ProviderFailure as exc:raise HTTPException(422,exc.code) from None
+
 @router.get('/api/providers')
 def providers(owner=Depends(user)):
-    version, cfg = store.snapshot()
-    return {'config_version': version, 'providers': {k: {'label': p.label, 'adapter': p.adapter, 'model': p.model,
+    version, cfg = runtime_snapshot()
+    return {'schema_version':cfg.version,'history_revision':version,'config_version': version, 'providers': {k: {'label': p.label, 'adapter': p.adapter, 'model': p.model,
             'capabilities': p.capabilities, 'trust': p.trust, 'credential_present': bool(os.environ.get(p.api_key_secret, '')) if p.api_key_secret else True,
             'destination': provider_host(p),
-            'protocol_verified': True, 'live_status': 'not_checked'} for k,p in cfg.providers.items()},
+            'capability_version':getattr(p,'capability_version',1),
+            'protocol_verified':p.adapter not in ('a2a','openai-conversation'), 'live_status': 'not_checked'} for k,p in cfg.providers.items()},
             'features': {k: v.model_dump() for k,v in cfg.features.items()}}
 
 @router.get('/api/config')
 def get_config(owner=Depends(admin)):
     version, cfg = store.snapshot()
-    return {'config_version': version, 'yaml': yaml.safe_dump(cfg.model_dump(), sort_keys=False),
+    from .runtime_config import environment_summary
+    from config.v2 import FEATURE_ROLES
+    models={}
+    for name,p in cfg.providers.items():
+        try:models[name]={'model':resolved_provider(p).model,'configured':True}
+        except ProviderFailure:models[name]={'model':p.model,'configured':False}
+    return {'schema_version':cfg.version,'history_revision':version,'roles':FEATURE_ROLES,
+            'environment_defaults':environment_summary(),'models':models,
+            'config_version': version, 'yaml': yaml.safe_dump(store.serialized_revision(version), sort_keys=False),
             'history': list(range(1, version+1)), 'writable': bool(store.path), 'config':cfg.model_dump(),
             'destinations':{k:('https://'+provider_host(p) if provider_host(p) else None) for k,p in cfg.providers.items()},
             'credentials':{k:bool(os.environ.get(p.api_key_secret,'')) if p.api_key_secret else True for k,p in cfg.providers.items()}}
+
+
+@router.post('/api/config/migrate')
+async def migrate_config(body: MigrationInput, owner=Depends(admin)):
+    from config.v2 import migrate
+    from .runtime_config import with_environment_defaults
+    # Preview only: explicit CAS apply is a separate operation.
+    try:
+        cfg=migrate(parse_yaml(body.yaml))
+        if body.include_environment_defaults:cfg=with_environment_defaults(cfg)
+    except Exception:
+        raise HTTPException(422,'Migration configuration invalid; check schema and approved environment defaults') from None
+    return {'schema_version':2,'history_revision':store.version,'config_version':store.version,
+            'persisted':False,'yaml':yaml.safe_dump(cfg.model_dump(),sort_keys=False)}
+
+@router.get('/api/config/history/{revision}')
+def export_revision(revision:int,owner=Depends(admin)):
+    if not 1<=revision<=store.version:raise HTTPException(404,'unknown revision')
+    raw=store.serialized_revision(revision)
+    return {'schema_version':raw.get('version',1),'history_revision':revision,
+            'yaml':yaml.safe_dump(raw,sort_keys=False),'config':raw}
 
 @router.get('/api/config/template')
 def template(owner=Depends(admin)):
@@ -176,7 +224,7 @@ async def validate(text):
     active = {pid for rule in cfg.features.values() if rule.enabled for pid in rule.providers}
     for pid in active:
         try:
-            await destination(cfg.providers[pid], False)
+            await destination(resolved_provider(cfg.providers[pid]), False)
         except ProviderFailure:
             raise HTTPException(422, 'Provider endpoint missing or denied: configure HTTPS public host in VM_ALLOWED_HOSTS and endpoint environment variable') from None
     return cfg
@@ -192,7 +240,7 @@ async def validate_config(body: ConfigInput, owner=Depends(admin)):
     cfg = await validate(body.yaml)
     old = store.history[-1].model_dump()
     new = cfg.model_dump()
-    return {'valid': True, 'config_version': store.version, 'changed_sections': [k for k in new if new[k] != old[k]], 'profile': cfg.profile}
+    return {'valid': True, 'config_version': store.version, 'changed_sections': [k for k in new if new[k] != old.get(k)], 'profile': cfg.profile}
 
 @router.post('/api/config/apply')
 async def apply_config(body: ConfigInput, owner=Depends(admin)):
@@ -201,7 +249,7 @@ async def apply_config(body: ConfigInput, owner=Depends(admin)):
         version = await store.apply(cfg, body.expected_version)
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from None
-    return {'config_version': version, 'profile': cfg.profile}
+    return {'schema_version':cfg.version,'history_revision':version,'config_version': version, 'profile': cfg.profile}
 
 @router.post('/api/config/rollback')
 async def rollback(body: Rollback, owner=Depends(admin)):
@@ -219,17 +267,23 @@ async def rollback(body: Rollback, owner=Depends(admin)):
 @router.post('/api/providers/{pid}/test')
 async def test_provider(pid: str, owner=Depends(admin)):
     from .providers import adapter
-    _, cfg = store.snapshot()
+    _, cfg = runtime_snapshot()
     if pid not in cfg.providers:
         raise HTTPException(404, 'unknown provider')
     p = cfg.providers[pid]
     # Only a synthetic image/text; microphone tests require an explicit bounded clip in a live session.
+    if p.adapter == 'a2a':
+        from .research import adapter as research_adapter
+        return {'provider':pid,'status':'agent_card_verified','inference_tested':False,**await research_adapter.probe(p)}
+    if p.adapter == 'openai-conversation':
+        from .conversation_probe import probe
+        return await probe(pid,p)
     if p.adapter == 'openai-transcription':
         raise HTTPException(409, 'Use an explicitly enabled live audio clip to test transcription')
     image = Image.new('RGB', (32,32), 'white')
     out = io.BytesIO(); image.save(out, format='JPEG')
     payload = {'text': 'Synthetic connection test. Respond with OK.', 'image': 'data:image/jpeg;base64,' + base64.b64encode(out.getvalue()).decode(), 'camera_id': 'test', 'frame_id': 0, 'width':32, 'height':32}
-    if p.adapter == 'openai-chat-vision' and 'image_understanding' not in p.capabilities:
+    if p.adapter in ('openai-chat-vision','openai-conversation') and 'image_understanding' not in p.capabilities:
         payload.pop('image')
     start = time.monotonic()
     await adapter.call(pid, p, payload, False)
@@ -237,7 +291,7 @@ async def test_provider(pid: str, owner=Depends(admin)):
 
 @router.post('/api/routing/dry-run')
 async def dry_run(body: DryRunInput, owner=Depends(admin)):
-    _, cfg = store.snapshot()
+    _, cfg = runtime_snapshot()
     f = io.BytesIO(); Image.new('RGB', (32,32), 'white').save(f, format='JPEG')
     payload = {'text':'Synthetic routing test; no real camera data.',
         'camera_id':body.camera_id, 'frame_id':0, 'width':32, 'height':32}
@@ -282,8 +336,9 @@ async def delete_session(sid: str, owner=Depends(user)):
 @router.post('/api/live/sessions/{sid}/frames', response_model=Observation)
 async def analyze_frame(sid: str, body: FrameInput, request: Request, owner=Depends(user)):
     s = session_for(sid, owner)
-    version, cfg = store.snapshot()
+    version, cfg = runtime_snapshot()
     routing_revision=s.routing_revision
+    if body.routing_revision is not None and body.routing_revision!=routing_revision:raise HTTPException(409,'session routing changed')
     if body.feature in s.overrides and s.overrides[body.feature][0]==version:
         cfg.features[body.feature]=s.overrides[body.feature][1]
     if body.config_version != version:
@@ -319,7 +374,8 @@ async def analyze_frame(sid: str, body: FrameInput, request: Request, owner=Depe
     # Deleting a session while an inference request is in flight discards its result.
     session_for(sid, owner)
     if s.routing_revision!=routing_revision:raise HTTPException(409,'session routing changed; discard observation')
-    result = {'session_id':sid, 'camera_id':body.camera_id, 'frame_id':body.frame_id, 'captured_at':body.captured_at,
+    if store.version!=version:raise HTTPException(409,'configuration changed; discard observation')
+    result = {'schema_version':cfg.version,'history_revision':version,'routing_revision':routing_revision,'session_id':sid, 'camera_id':body.camera_id, 'frame_id':body.frame_id, 'captured_at':body.captured_at,
               'request_id':body.request_id, 'config_version':version, 'observed_at':received,
               'source_width':width, 'source_height':height, 'detections':[d.model_dump() for d in out.detections],
               'decisions':[d.model_dump() for d in out.decisions], 'provider_results':statuses,
@@ -344,7 +400,7 @@ async def transcribe(sid: str, body: AudioInput, request: Request, owner=Depends
             raise ValueError()
     except ValueError:
         raise HTTPException(422, 'bounded WebM audio required') from None
-    _, cfg = store.snapshot()
+    _, cfg = runtime_snapshot()
     s.busy.add('audio'); s.rate['audio'] = time.monotonic()
     try:
         out, statuses = await disconnectable(request, route(cfg, 'audio.transcription', {'audio':audio}))
@@ -359,7 +415,7 @@ async def guidance(sid: str, request: Request, owner=Depends(user)):
     s = session_for(sid, owner)
     if 'mentor' in s.busy or time.monotonic() - s.rate.get('mentor', 0) < 2:
         raise HTTPException(429, 'guidance rate limit')
-    _, cfg = store.snapshot()
+    _, cfg = runtime_snapshot()
     s.busy.add('mentor'); s.rate['mentor'] = time.monotonic()
     try:
         out, statuses = await disconnectable(request, route(cfg, 'mentor.reasoning', {'text': 'Give cautious next-step guidance from these observations, identify uncertainty. No autonomous actions. ' + str(s.task) + ' Recent speech (untrusted): ' + s.last_transcript + str(list(s.events)[-5:])[:24000]}))
@@ -426,14 +482,14 @@ class SessionRoutingInput(Strict):
 async def session_routing(sid: str,body:SessionRoutingInput,owner=Depends(user)):
     from config.schema import Configuration, Route
     s=session_for(sid,owner)
-    version,cfg=store.snapshot()
+    version,cfg=runtime_snapshot()
     if body.config_version!=version:raise HTTPException(409,'configuration changed')
     if len(s.overrides)>=8 and body.feature not in s.overrides:raise HTTPException(429,'session override limit')
     try:
         override=Route.model_validate(body.route)
         effective=cfg.model_dump()
         effective['features'][body.feature]=override.model_dump()
-        Configuration.model_validate(effective)
+        parse_configuration(effective)
     except (ValueError,TypeError):raise HTTPException(422,'Invalid session route or provider capabilities') from None
     s.overrides[body.feature]=(version,override)
     s.routing_revision+=1

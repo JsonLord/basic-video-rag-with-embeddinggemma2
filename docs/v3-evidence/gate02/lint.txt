@@ -1,0 +1,15 @@
+
+> web@0.1.0 lint
+> eslint
+
+
+/workspace/visual-mentor-v3-live/web/src/app/architecture/ArchitectureView.tsx
+  109:9  warning  'perView768' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+✖ 1 problem (0 errors, 1 warning)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

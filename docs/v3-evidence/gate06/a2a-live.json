@@ -1,0 +1,17 @@
+{
+  "recorded_at_utc": "2026-10-24T10:46:59.682287+00:00",
+  "kind": "live_external_a2a_discovery",
+  "status": "BLOCKED_CREDENTIALS",
+  "probe_exit_code": 2,
+  "probe": {
+    "kind": "live_external_agent_card",
+    "task_submitted": false,
+    "host": "leon4gr45-openoperator.hf.space",
+    "credential_present": false,
+    "status": "blocked",
+    "error": "secure_environment_missing"
+  },
+  "application_destination_authorized": false,
+  "research_task_status": "NOT_AUTHORIZED_NOT_SUBMITTED",
+  "live_proxy_substitution": "NOT_TESTED"
+}

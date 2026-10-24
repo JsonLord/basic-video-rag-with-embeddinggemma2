@@ -60,14 +60,28 @@ async def run_job(job):
     check_cancel(jid)
     update(jid,status='running',stage='probe',error=None,attempts=job['attempts']+1)
     probe=json.loads(await command('ffprobe','-v','error','-show_format','-show_streams','-of','json',vdir/'original',timeout=20))
-    duration=float(probe['format']['duration'])
-    if not math.isfinite(duration) or not 0<duration<=MAX_DURATION:raise ProviderFailure('duration_limit_30_minutes')
     if not any(s['codec_type']=='video' for s in probe['streams']):raise ProviderFailure('video_stream_required')
+    raw_duration=probe.get('format',{}).get('duration')
+    duration=float(raw_duration) if raw_duration is not None else None
+    if duration is not None and (not math.isfinite(duration) or not 0<duration<=MAX_DURATION):
+        raise ProviderFailure('duration_limit_30_minutes')
     check_cancel(jid)
     update(jid,stage='proxy')
     if not (vdir/'video.mp4').exists():
-        await command('ffmpeg','-hide_banner','-loglevel','error','-nostdin','-i',vdir/'original','-vf','scale=640:-2','-r','15','-c:v','libx264','-threads','1','-preset','veryfast','-crf','26','-c:a','aac','-movflags','+faststart','-y',vdir/'proxy.tmp.mp4',timeout=600)
+        # MediaRecorder's streaming WebM often has no duration header. Decode at
+        # most one second beyond the limit, then probe the seekable proxy. This
+        # bounds processing without silently accepting a truncated long capture.
+        await command('ffmpeg','-hide_banner','-loglevel','error','-nostdin','-i',vdir/'original','-t',str(MAX_DURATION+1),'-vf','scale=640:-2','-r','15','-c:v','libx264','-threads','1','-preset','veryfast','-crf','26','-c:a','aac','-movflags','+faststart','-y',vdir/'proxy.tmp.mp4',timeout=600)
+        proxy=json.loads(await command('ffprobe','-v','error','-show_format','-of','json',vdir/'proxy.tmp.mp4',timeout=20))
+        proxy_duration=float(proxy['format']['duration'])
+        if not math.isfinite(proxy_duration) or not 0<proxy_duration<=MAX_DURATION:
+            (vdir/'proxy.tmp.mp4').unlink(missing_ok=True)
+            raise ProviderFailure('duration_limit_30_minutes')
         os.replace(vdir/'proxy.tmp.mp4',vdir/'video.mp4')
+    if duration is None:
+        proxy=json.loads(await command('ffprobe','-v','error','-show_format','-of','json',vdir/'video.mp4',timeout=20))
+        duration=float(proxy['format']['duration'])
+        if not math.isfinite(duration) or not 0<duration<=MAX_DURATION:raise ProviderFailure('duration_limit_30_minutes')
     await command('ffmpeg','-hide_banner','-loglevel','error','-nostdin','-i',vdir/'video.mp4','-frames:v','1','-threads','1','-y',vdir/'thumb.jpg')
     meta=dict(id=vid,title=job['title'],duration=duration,source_file='Browser upload',youtube_id=None,webpage_url=None,view_count=None,channel_position=None,transcript_source='remote',transcript_engine='whisper')
     (vdir/'meta.json').write_text(json.dumps(meta))

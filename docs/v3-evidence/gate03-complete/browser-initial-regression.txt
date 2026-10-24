@@ -1,0 +1,320 @@
+
+Running 43 tests using 1 worker
+
+(node:116593) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/backups.spec.ts:3:5 › backup administration distinguishes acceptance from verified completion (976ms)
+  ✓   2 tests/backups.spec.ts:21:5 › backup administration handles denied access (696ms)
+  ✓   3 tests/conversation.integration.spec.ts:4:5 › durable streaming tools and A2A research preserve two camera previews and reconnect (21.1s)
+  ✓   4 tests/framing.spec.ts:20:5 › stable association, lost/reacquired state, expiry and monotonic frame time (6ms)
+  ✓   5 tests/framing.spec.ts:38:5 › tracks never associate across source, camera or incompatible upstream IDs (2ms)
+  ✓   6 tests/framing.spec.ts:65:7 › bounded aspect-correct crop 0,0,0.1,0.1 (4ms)
+  ✓   7 tests/framing.spec.ts:65:7 › bounded aspect-correct crop 0.85,0.8,1,1 (2ms)
+  ✓   8 tests/framing.spec.ts:65:7 › bounded aspect-correct crop 0.1,0.2,0.9,0.8 (2ms)
+  ✓   9 tests/framing.spec.ts:65:7 › bounded aspect-correct crop 0.3,0.3,0.4,0.4 (2ms)
+  ✓  10 tests/framing.spec.ts:77:5 › full-frame loss, smoothing independent of update frequency, contain/cover and mirror (2ms)
+  ✓  11 tests/fullstack.spec.ts:2:5 › real same-origin sample library, search, Ask, playback and Range (3.0s)
+  ✓  12 tests/gate02.spec.ts:4:5 › HF defaults, explicit migration, provider/profile switching, validation and CAS apply (1.1s)
+  ✓  13 tests/gate02.spec.ts:168:5 › invalid environment settings remain explicit configuration errors, never successful health (691ms)
+  ✓  14 tests/live.spec.ts:2:5 › dual simulated previews require explicit transfer and stop on navigation (1.9s)
+  ✓  15 tests/live.spec.ts:63:5 › models studio validates and atomically switches a profile (915ms)
+  ✓  16 tests/parity.spec.ts:10:7 › original UI desktop (4.3s)
+  ✓  17 tests/parity.spec.ts:10:7 › original UI laptop (3.9s)
+  ✓  18 tests/parity.spec.ts:10:7 › original UI tablet (5.9s)
+  ✓  19 tests/parity.spec.ts:10:7 › original UI mobile (5.9s)
+  ✓  20 tests/parity.spec.ts:48:5 › clip and citation interactions (1.2s)
+  ✓  21 tests/recording.integration.spec.ts:3:5 › native browser recording imports through real HTTP, FFmpeg, SQLite, index and original Library (6.4s)
+  ✓  22 tests/recording.spec.ts:22:5 › real dual simulated-camera encoding, independent lifecycle, replay/download/delete and explicit import (5.6s)
+  ✓  23 tests/recording.spec.ts:204:5 › device stop finalizes interrupted recording and unsupported codecs fail visibly (2.0s)
+  ✓  24 tests/recording.spec.ts:246:5 › synthetic boxes drive stable selection and mirror-safe framing, then recover full frame (5.0s)
+  ✓  25 tests/recording.spec.ts:362:5 › late microphone permission after stop is discarded without recording or upload (1.2s)
+  ✓  26 tests/recording.spec.ts:429:5 › local quota failure discards oversized recording and preserves camera preview (1.3s)
+  ✓  27 tests/recording.spec.ts:471:7 › microphone denied fails closed without silently claiming audio (1.1s)
+  ✓  28 tests/recording.spec.ts:471:7 › microphone missing-track fails closed without silently claiming audio (1.1s)
+  ✘  29 tests/release.spec.ts:11:5 › permission denial shows an error without uploading (842ms)
+(node:119551) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  30 tests/release.spec.ts:19:7 › rejects frame mismatch and permits a later matching observation (1.1s)
+(node:119689) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  31 tests/release.spec.ts:19:7 › rejects config mismatch and permits a later matching observation (1.1s)
+(node:119826) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  32 tests/release.spec.ts:19:7 › rejects dimensions mismatch and permits a later matching observation (1.0s)
+(node:119964) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  33 tests/release.spec.ts:19:7 › rejects box mismatch and permits a later matching observation (1.1s)
+(node:120102) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  34 tests/release.spec.ts:19:7 › rejects timestamp mismatch and permits a later matching observation (1.1s)
+(node:120243) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  35 tests/release.spec.ts:19:7 › rejects routing mismatch and permits a later matching observation (1.2s)
+(node:120399) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  36 tests/release.spec.ts:48:5 › stopping a camera discards its delayed result (1.1s)
+  ✓  37 tests/release.spec.ts:61:5 › a pending camera permission grant after navigation stops the returned tracks (935ms)
+  ✘  38 tests/release.spec.ts:74:5 › device contention is reported and track end stops the preview (911ms)
+(node:120608) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  39 tests/release.spec.ts:86:5 › hiding the page stops microphone capture without uploading audio (934ms)
+  ✘  40 tests/release.spec.ts:100:5 › recorder errors release microphone tracks and discard audio (945ms)
+(node:120796) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  41 tests/studio.spec.ts:60:7 › native Live and Models desktop (4.0s)
+  ✓  42 tests/studio.spec.ts:60:7 › native Live and Models mobile (2.7s)
+  ✓  43 tests/studio.spec.ts:74:5 › import edits draft, validate gates apply, route form updates YAML (1.1s)
+
+
+  1) tests/release.spec.ts:11:5 › permission denial shows an error without uploading ───────────────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('main').getByRole('alert')
+    Expected substring: "permission denied"
+    Error: strict mode violation: locator('main').getByRole('alert') resolved to 2 elements:
+        1) <p role="alert" class="text-red-300 my-2">Camera unavailable: Camera permission denied. Che…</p> aka getByText('Camera unavailable: Camera')
+        2) <p role="alert" class="text-sm">configure a server token (at least 24 characters)…</p> aka getByText('configure a server token (at')
+
+    Call log:
+      - Expect "toContainText" locator('main').getByRole('alert') with timeout 5000ms
+      - waiting for locator('main').getByRole('alert')
+
+
+      13 |   await page.addInitScript(()=>Object.defineProperty(navigator.mediaDevices,'getUserMedia',{value:()=>Promise.reject(new DOMException('Camera permission denied','NotAllowedError'))}));
+      14 |   await page.goto('/live');await page.getByRole('button',{name:'Start preview'}).first().click();
+    > 15 |   await expect(page.locator('main').getByRole('alert')).toContainText('permission denied');expect(uploaded).toBe(false);
+         |                                                         ^
+      16 | });
+      17 |
+      18 | for(const mismatch of ['frame','config','dimensions','box','timestamp','routing']){
+        at /workspace/visual-mentor-v3-live/web/tests/release.spec.ts:15:57
+
+    Error Context: test-results/release-permission-denial-shows-an-error-without-uploading/error-context.md
+
+  2) tests/release.spec.ts:19:7 › rejects frame mismatch and permits a later matching observation ──
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('main').getByRole('alert')
+    Expected substring: "Discarded"
+    Error: strict mode violation: locator('main').getByRole('alert') resolved to 2 elements:
+        1) <p role="alert" class="text-red-300 my-2">Discarded mismatched or invalid observation</p> aka getByText('Discarded mismatched or')
+        2) <p role="alert" class="text-sm">configure a server token (at least 24 characters)…</p> aka getByText('configure a server token (at')
+
+    Call log:
+      - Expect "toContainText" locator('main').getByRole('alert') with timeout 5000ms
+      - waiting for locator('main').getByRole('alert')
+
+
+      38 |     await page.getByRole('button',{name:'Analyze now'}).first().click();
+      39 |     await expect.poll(()=>attempt).toBe(1);
+    > 40 |     await expect(page.locator('main').getByRole('alert')).toContainText('Discarded');
+         |                                                           ^
+      41 |     await expect(page.getByLabel('camera1 detection overlay')).toHaveCount(0);
+      42 |     await expect(page.getByText('No frames sent.',{exact:true})).toBeVisible();
+      43 |     await page.getByRole('button',{name:'Analyze now'}).first().click();
+        at /workspace/visual-mentor-v3-live/web/tests/release.spec.ts:40:59
+
+    Error Context: test-results/release-rejects-frame-mism-6d5e2--later-matching-observation/error-context.md
+
+  3) tests/release.spec.ts:19:7 › rejects config mismatch and permits a later matching observation ─
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('main').getByRole('alert')
+    Expected substring: "Discarded"
+    Error: strict mode violation: locator('main').getByRole('alert') resolved to 2 elements:
+        1) <p role="alert" class="text-red-300 my-2">Discarded mismatched or invalid observation</p> aka getByText('Discarded mismatched or')
+        2) <p role="alert" class="text-sm">configure a server token (at least 24 characters)…</p> aka getByText('configure a server token (at')
+
+    Call log:
+      - Expect "toContainText" locator('main').getByRole('alert') with timeout 5000ms
+      - waiting for locator('main').getByRole('alert')
+
+
+      38 |     await page.getByRole('button',{name:'Analyze now'}).first().click();
+      39 |     await expect.poll(()=>attempt).toBe(1);
+    > 40 |     await expect(page.locator('main').getByRole('alert')).toContainText('Discarded');
+         |                                                           ^
+      41 |     await expect(page.getByLabel('camera1 detection overlay')).toHaveCount(0);
+      42 |     await expect(page.getByText('No frames sent.',{exact:true})).toBeVisible();
+      43 |     await page.getByRole('button',{name:'Analyze now'}).first().click();
+        at /workspace/visual-mentor-v3-live/web/tests/release.spec.ts:40:59
+
+    Error Context: test-results/release-rejects-config-mis-059b1--later-matching-observation/error-context.md
+
+  4) tests/release.spec.ts:19:7 › rejects dimensions mismatch and permits a later matching observation 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('main').getByRole('alert')
+    Expected substring: "Discarded"
+    Error: strict mode violation: locator('main').getByRole('alert') resolved to 2 elements:
+        1) <p role="alert" class="text-red-300 my-2">Discarded mismatched or invalid observation</p> aka getByText('Discarded mismatched or')
+        2) <p role="alert" class="text-sm">configure a server token (at least 24 characters)…</p> aka getByText('configure a server token (at')
+
+    Call log:
+      - Expect "toContainText" locator('main').getByRole('alert') with timeout 5000ms
+      - waiting for locator('main').getByRole('alert')
+
+
+      38 |     await page.getByRole('button',{name:'Analyze now'}).first().click();
+      39 |     await expect.poll(()=>attempt).toBe(1);
+    > 40 |     await expect(page.locator('main').getByRole('alert')).toContainText('Discarded');
+         |                                                           ^
+      41 |     await expect(page.getByLabel('camera1 detection overlay')).toHaveCount(0);
+      42 |     await expect(page.getByText('No frames sent.',{exact:true})).toBeVisible();
+      43 |     await page.getByRole('button',{name:'Analyze now'}).first().click();
+        at /workspace/visual-mentor-v3-live/web/tests/release.spec.ts:40:59
+
+    Error Context: test-results/release-rejects-dimensions-1abdf--later-matching-observation/error-context.md
+
+  5) tests/release.spec.ts:19:7 › rejects box mismatch and permits a later matching observation ────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('main').getByRole('alert')
+    Expected substring: "Discarded"
+    Error: strict mode violation: locator('main').getByRole('alert') resolved to 2 elements:
+        1) <p role="alert" class="text-red-300 my-2">Discarded mismatched or invalid observation</p> aka getByText('Discarded mismatched or')
+        2) <p role="alert" class="text-sm">configure a server token (at least 24 characters)…</p> aka getByText('configure a server token (at')
+
+    Call log:
+      - Expect "toContainText" locator('main').getByRole('alert') with timeout 5000ms
+      - waiting for locator('main').getByRole('alert')
+
+
+      38 |     await page.getByRole('button',{name:'Analyze now'}).first().click();
+      39 |     await expect.poll(()=>attempt).toBe(1);
+    > 40 |     await expect(page.locator('main').getByRole('alert')).toContainText('Discarded');
+         |                                                           ^
+      41 |     await expect(page.getByLabel('camera1 detection overlay')).toHaveCount(0);
+      42 |     await expect(page.getByText('No frames sent.',{exact:true})).toBeVisible();
+      43 |     await page.getByRole('button',{name:'Analyze now'}).first().click();
+        at /workspace/visual-mentor-v3-live/web/tests/release.spec.ts:40:59
+
+    Error Context: test-results/release-rejects-box-mismat-16786--later-matching-observation/error-context.md
+
+  6) tests/release.spec.ts:19:7 › rejects timestamp mismatch and permits a later matching observation 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('main').getByRole('alert')
+    Expected substring: "Discarded"
+    Error: strict mode violation: locator('main').getByRole('alert') resolved to 2 elements:
+        1) <p role="alert" class="text-red-300 my-2">Discarded mismatched or invalid observation</p> aka getByText('Discarded mismatched or')
+        2) <p role="alert" class="text-sm">configure a server token (at least 24 characters)…</p> aka getByText('configure a server token (at')
+
+    Call log:
+      - Expect "toContainText" locator('main').getByRole('alert') with timeout 5000ms
+      - waiting for locator('main').getByRole('alert')
+
+
+      38 |     await page.getByRole('button',{name:'Analyze now'}).first().click();
+      39 |     await expect.poll(()=>attempt).toBe(1);
+    > 40 |     await expect(page.locator('main').getByRole('alert')).toContainText('Discarded');
+         |                                                           ^
+      41 |     await expect(page.getByLabel('camera1 detection overlay')).toHaveCount(0);
+      42 |     await expect(page.getByText('No frames sent.',{exact:true})).toBeVisible();
+      43 |     await page.getByRole('button',{name:'Analyze now'}).first().click();
+        at /workspace/visual-mentor-v3-live/web/tests/release.spec.ts:40:59
+
+    Error Context: test-results/release-rejects-timestamp--0012c--later-matching-observation/error-context.md
+
+  7) tests/release.spec.ts:19:7 › rejects routing mismatch and permits a later matching observation 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('main').getByRole('alert')
+    Expected substring: "Discarded"
+    Error: strict mode violation: locator('main').getByRole('alert') resolved to 2 elements:
+        1) <p role="alert" class="text-red-300 my-2">Discarded mismatched or invalid observation</p> aka getByText('Discarded mismatched or')
+        2) <p role="alert" class="text-sm">configure a server token (at least 24 characters)…</p> aka getByText('configure a server token (at')
+
+    Call log:
+      - Expect "toContainText" locator('main').getByRole('alert') with timeout 5000ms
+      - waiting for locator('main').getByRole('alert')
+
+
+      38 |     await page.getByRole('button',{name:'Analyze now'}).first().click();
+      39 |     await expect.poll(()=>attempt).toBe(1);
+    > 40 |     await expect(page.locator('main').getByRole('alert')).toContainText('Discarded');
+         |                                                           ^
+      41 |     await expect(page.getByLabel('camera1 detection overlay')).toHaveCount(0);
+      42 |     await expect(page.getByText('No frames sent.',{exact:true})).toBeVisible();
+      43 |     await page.getByRole('button',{name:'Analyze now'}).first().click();
+        at /workspace/visual-mentor-v3-live/web/tests/release.spec.ts:40:59
+
+    Error Context: test-results/release-rejects-routing-mi-e9c05--later-matching-observation/error-context.md
+
+  8) tests/release.spec.ts:74:5 › device contention is reported and track end stops the preview ────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('main').getByRole('alert')
+    Expected substring: "Device busy"
+    Error: strict mode violation: locator('main').getByRole('alert') resolved to 2 elements:
+        1) <p role="alert" class="text-red-300 my-2">Camera unavailable: Device busy. Check permission…</p> aka getByText('Camera unavailable: Device')
+        2) <p role="alert" class="text-sm">configure a server token (at least 24 characters)…</p> aka getByText('configure a server token (at')
+
+    Call log:
+      - Expect "toContainText" locator('main').getByRole('alert') with timeout 5000ms
+      - waiting for locator('main').getByRole('alert')
+
+
+      79 |   await page.goto('/live');await page.getByRole('button',{name:'Start preview'}).first().click();
+      80 |   await expect.poll(()=>page.locator('video').first().evaluate(v=>(v as HTMLVideoElement).videoWidth),{timeout:15000}).toBeGreaterThan(0);
+    > 81 |   await page.getByRole('button',{name:'Start preview'}).nth(1).click();await expect(page.locator('main').getByRole('alert')).toContainText('Device busy');
+         |                                                                                                                              ^
+      82 |   await page.locator('video').first().evaluate(v=>((v as HTMLVideoElement).srcObject as MediaStream).getVideoTracks()[0].dispatchEvent(new Event('ended')));
+      83 |   expect(await page.locator('video').first().evaluate(v=>(v as HTMLVideoElement).srcObject)).toBeNull();
+      84 | });
+        at /workspace/visual-mentor-v3-live/web/tests/release.spec.ts:81:126
+
+    Error Context: test-results/release-device-contention--404b7-track-end-stops-the-preview/error-context.md
+
+  9) tests/release.spec.ts:100:5 › recorder errors release microphone tracks and discard audio ─────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('main').getByRole('alert')
+    Expected substring: "capture stopped"
+    Error: strict mode violation: locator('main').getByRole('alert') resolved to 2 elements:
+        1) <p role="alert">Microphone recording failed; capture stopped</p> aka getByText('Microphone recording failed;')
+        2) <p role="alert" class="text-sm">configure a server token (at least 24 characters)…</p> aka getByText('configure a server token (at')
+
+    Call log:
+      - Expect "toContainText" locator('main').getByRole('alert') with timeout 5000ms
+      - waiting for locator('main').getByRole('alert')
+        2 × locator resolved to <p role="alert" class="text-sm">configure a server token (at least 24 characters)…</p>
+          - unexpected value "configure a server token (at least 24 characters) and authenticate"
+
+
+      108 |   await session(page);await page.route('**/api/live/sessions/release-session/transcribe',r=>{uploads++;return r.abort();});
+      109 |   await page.getByRole('button',{name:'Push to talk (send up to 15 seconds)'}).click();
+    > 110 |   await expect(page.locator('main').getByRole('alert')).toContainText('capture stopped');
+          |                                                         ^
+      111 |   expect(await page.evaluate(()=>(window as unknown as {microphoneTracks:MediaStreamTrack[]}).microphoneTracks.every(t=>t.readyState==='ended'))).toBe(true);
+      112 |   expect(uploads).toBe(0);
+      113 | });
+        at /workspace/visual-mentor-v3-live/web/tests/release.spec.ts:110:57
+
+    Error Context: test-results/release-recorder-errors-re-0fce2-ne-tracks-and-discard-audio/error-context.md
+
+  9 failed
+    tests/release.spec.ts:11:5 › permission denial shows an error without uploading ────────────────
+    tests/release.spec.ts:19:7 › rejects frame mismatch and permits a later matching observation ───
+    tests/release.spec.ts:19:7 › rejects config mismatch and permits a later matching observation ──
+    tests/release.spec.ts:19:7 › rejects dimensions mismatch and permits a later matching observation 
+    tests/release.spec.ts:19:7 › rejects box mismatch and permits a later matching observation ─────
+    tests/release.spec.ts:19:7 › rejects timestamp mismatch and permits a later matching observation 
+    tests/release.spec.ts:19:7 › rejects routing mismatch and permits a later matching observation ─
+    tests/release.spec.ts:74:5 › device contention is reported and track end stops the preview ─────
+    tests/release.spec.ts:100:5 › recorder errors release microphone tracks and discard audio ──────
+  34 passed (1.7m)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

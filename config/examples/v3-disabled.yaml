@@ -1,0 +1,46 @@
+# V3 browser capture/framing use the existing v1 configuration contract.
+# This does NOT activate conversation/tools, local ASR or A2A adapters.
+version: 1
+profile: v3-browser-lab-disabled
+providers:
+  qwen:
+    label: Remote Qwen reasoning candidate; endpoint capabilities unqualified
+    adapter: openai-chat-vision
+    model: Qwen/Qwen3.6-35B-A3B
+    base_url_env: QWEN_GATEWAY_BASE_URL
+    api_key_secret: QWEN_GATEWAY_KEY
+    capabilities: [image_understanding, reasoning]
+    trust: approved_sensitive
+  nvidia_gateway:
+    label: Custom detection-http gateway only; native NVIDIA protocol unqualified
+    adapter: detection-http
+    model: replace-with-verified-gateway-model
+    base_url_env: NVIDIA_DETECTION_BASE_URL
+    api_key_secret: NVIDIA_DETECTION_API_KEY
+    capabilities: [object_detection, bounding_boxes]
+    trust: approved_sensitive
+  laya:
+    label: Needle Router typed decisions; no geometry
+    adapter: laya-vision
+    model: thaitea/laya-vision
+    base_url_env: LAYA_BASE_URL
+    api_key_secret: LAYA_API_KEY
+    capabilities: [image_understanding, visual_decision]
+    timeout_ms: 60000
+    concurrency: 1
+    trust: approved_sensitive
+features:
+  live.camera1.scene:
+    enabled: false
+    strategy: single
+    providers: [nvidia_gateway]
+  live.camera2.scene:
+    enabled: false
+    strategy: parallel
+    providers: [laya, nvidia_gateway]
+    result_policy: all
+    fusion: spatial_semantic
+  mentor.reasoning:
+    enabled: false
+    strategy: single
+    providers: [qwen]
