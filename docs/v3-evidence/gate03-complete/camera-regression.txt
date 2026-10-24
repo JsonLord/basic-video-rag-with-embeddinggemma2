@@ -1,0 +1,24 @@
+
+Running 12 tests using 1 worker
+
+(node:121170) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/release.spec.ts:11:5 › permission denial shows an error without uploading (863ms)
+  ✓   2 tests/release.spec.ts:19:7 › rejects frame mismatch and permits a later matching observation (1.1s)
+  ✓   3 tests/release.spec.ts:19:7 › rejects config mismatch and permits a later matching observation (1.1s)
+  ✓   4 tests/release.spec.ts:19:7 › rejects dimensions mismatch and permits a later matching observation (1.1s)
+  ✓   5 tests/release.spec.ts:19:7 › rejects box mismatch and permits a later matching observation (1.0s)
+  ✓   6 tests/release.spec.ts:19:7 › rejects timestamp mismatch and permits a later matching observation (1.1s)
+  ✓   7 tests/release.spec.ts:19:7 › rejects routing mismatch and permits a later matching observation (1.1s)
+  ✓   8 tests/release.spec.ts:48:5 › stopping a camera discards its delayed result (1.0s)
+  ✓   9 tests/release.spec.ts:61:5 › a pending camera permission grant after navigation stops the returned tracks (887ms)
+  ✓  10 tests/release.spec.ts:74:5 › device contention is reported and track end stops the preview (978ms)
+  ✓  11 tests/release.spec.ts:86:5 › hiding the page stops microphone capture without uploading audio (931ms)
+  ✓  12 tests/release.spec.ts:100:5 › recorder errors release microphone tracks and discard audio (866ms)
+
+  12 passed (14.5s)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

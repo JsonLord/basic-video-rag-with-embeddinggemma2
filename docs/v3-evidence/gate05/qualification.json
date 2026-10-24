@@ -1,0 +1,88 @@
+{
+  "qualified_at_utc": "2026-10-24T10:19:43.990472+00:00",
+  "source_commit": "bd0a6339b1280ef2ddaafc176d37de41f309aecd",
+  "branch": "feature/visual-mentor-v3-live",
+  "decisions": {
+    "fixture_qualified_implementation": "GO",
+    "live_qwen": "NOT_QUALIFIED",
+    "live_a2a": "BLOCKED_SECURE_ENVIRONMENT_MISSING",
+    "production_deployment": "NO_GO"
+  },
+  "evidence": {
+    "backend": {
+      "passed": 175,
+      "failed": 0,
+      "skipped": 0,
+      "category": [
+        "mock_external_transports",
+        "real_local_sqlite_ffmpeg_age",
+        "fresh_process_reconciliation"
+      ]
+    },
+    "browser": {
+      "passed": 43,
+      "failed": 0,
+      "category": [
+        "simulated_cameras_microphone",
+        "real_local_http_ingestion_index_playback",
+        "mock_openai_and_official_a2a_sdk_transport"
+      ]
+    },
+    "next_production_build": "PASS",
+    "lint": {
+      "errors": 0,
+      "existing_warnings": 1
+    },
+    "clean_frozen_runtime": {
+      "kind": "clean_frozen_base_runtime_import",
+      "a2a_sdk": "0.3.26",
+      "api_title": "Visual Mentor",
+      "forbidden_packages_present": {
+        "torch": false,
+        "transformers": false,
+        "vllm": false
+      },
+      "container_tested": false
+    },
+    "encrypted_destructive_local_recovery": {
+      "passed": true,
+      "github_transport": "mock",
+      "preserved": [
+        "conversation_messages",
+        "research_task_identity",
+        "tool_idempotency"
+      ]
+    },
+    "live_agent_card": {
+      "kind": "live_external_agent_card",
+      "task_submitted": false,
+      "host": null,
+      "credential_present": false,
+      "status": "blocked",
+      "error": "secure_environment_missing"
+    }
+  },
+  "safety_boundary": {
+    "deployed": false,
+    "production_workflow_activated": false,
+    "remote_research_task_submitted": false,
+    "external_service_configuration_changed": false,
+    "docker_qualified": false
+  },
+  "remaining": [
+    "secure A2A environment and URL-path proxy substitution qualification",
+    "live Agent Card and remote research lifecycle",
+    "live OpenAI-compatible model qualification",
+    "CPU Docker registry access and startup",
+    "private HF/device/resource/recovery qualification"
+  ],
+  "environment_draft": {
+    "saved": true,
+    "published_by_agent": false,
+    "added_destination": "leon4gr45-openoperator.hf.space",
+    "new_requirements": [
+      "A2A_URL",
+      "A2A_TOKEN"
+    ]
+  }
+}

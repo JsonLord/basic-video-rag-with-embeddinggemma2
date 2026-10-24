@@ -103,3 +103,28 @@ interrupted calls remain outcome_unknown. No real research handler is registered
 Full conversation HTTP/UI orchestration, durable turns, grounded tools, lifecycle
 cleanup and capability probes are still pending. See [v3-gate02-report.md](v3-gate02-report.md)
 for evidence, limits and the remaining Gate 03/Phonon/A2A work.
+
+
+## Gate 03 / Gate 05 implemented continuation
+
+The earlier foundation/reserved descriptions are historical checkpoints. The active
+implementation now adds `conversation.py`, `mentor_state.py`, `research_jobs.py`,
+and the official SDK adapter in `research.py` to the existing authentication,
+provider registry and application lifespan. Owned chat turns execute independently
+of SSE readers and use durable event cursors. Whole validated assistant tool-call
+messages precede correlated tool outputs and bounded model continuations.
+`retrieve_video_evidence` queries the existing versioned index; `summarize_scene`
+reads selected owned observation metadata without raw frames.
+
+Conversation, tool and research tables share jobs.sqlite and its encrypted backup
+scope. Crashed generations remain unknown, known remote tasks reconcile, and
+ambiguous submissions never replay. A separate bounded asynchronous coordinator
+uses official A2A SDK submit/get/cancel. Agent Cards cannot redirect the configured
+endpoint or choose authentication. Completed structured research is untrusted
+advisory evidence and enters Qwen only through an explicit owned continuation.
+
+Live embeds the reusable MentorConversation panel without changing camera lifetime
+ownership; `/mentor` offers the panel separately. The existing YAML studio remains
+authoritative, with explicit A2A bearer/path-token selection. Defaults/examples stay
+disabled; actual model, agent and deployment qualification are separate from fixture
+acceptance. See v3-gate03-report.md and v3-gate05-report.md for bounds and evidence.

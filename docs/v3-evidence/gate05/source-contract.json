@@ -1,0 +1,36 @@
+{
+  "kind": "upstream_source_inspection",
+  "deployed_revision_verified": false,
+  "repository": "agent0ai/agent-zero",
+  "revision": "ff2a5b9c9c4e490ba38dd7c313e779510bb2071a",
+  "files": [
+    {
+      "path": "helpers/fasta2a_server.py",
+      "git_blob": "dfac9da24dd0e3d8eaca13dbbb33b84b8f13aefa",
+      "sha256": "1c4341eb068c1c5ae4515e8db3212966c5ef288e714abe973d30da3b6cba232e"
+    },
+    {
+      "path": "helpers/fasta2a_client.py",
+      "git_blob": "2a8752b55d348f804ae28b12c423cc7b1a2eef9f",
+      "sha256": "68bd09c085ea59742b0e8b6b1f236978ec0950752bbb45a6c43da3a74172fb68"
+    },
+    {
+      "path": "docs/guides/a2a-setup.md",
+      "git_blob": "3212020fe108c87a2042d477e893dfd15ec217e0",
+      "sha256": "7cd68eda8163a3b66370f1d5ab6ce146122a20ccdac07d910e073f6c57743316"
+    }
+  ],
+  "sdk": {
+    "name": "a2a-sdk",
+    "version": "0.3.26",
+    "license": "Apache-2.0",
+    "repository": "https://github.com/a2aproject/a2a-python"
+  },
+  "findings": [
+    "token-in-path routing documented and implemented",
+    "legacy /.well-known/agent.json discovery documented",
+    "JSON-RPC message/send, tasks/get supported by upstream client"
+  ],
+  "live_agent_card": "blocked_missing_secure_environment",
+  "remote_task_submitted": false
+}

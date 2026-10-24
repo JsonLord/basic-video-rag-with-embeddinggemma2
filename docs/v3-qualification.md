@@ -1,8 +1,9 @@
-# Visual Mentor v3 qualification — 23 October 2026
+# Visual Mentor v3 qualification — 24 October 2026
 
-**Decision: Gate 02 passes synthetic acceptance; Gate 03 foundation begun. NO-GO for full v3 release or deployment.**
+**Decision: Gates 02, 03 and 05 have fixture-qualified implementations. NO-GO for production deployment or live Qwen/A2A claims.**
 
-Latest continuation starts from `7c2c1a87164d94a49105f374580703ff61e7bf1c`; see
+Latest continuation starts from `9e31e867669519cd985562ce63487d760cba6a0d`; see
+[v3-gate03-report.md](v3-gate03-report.md) and [v3-gate05-report.md](v3-gate05-report.md) for the completed conversation/research paths. Historical Gate 02 starting point was `7c2c1a87164d94a49105f374580703ff61e7bf1c`; see
 [v3-gate02-report.md](v3-gate02-report.md) for migration, precedence, exact evidence
 and the remaining work. Earlier Gate 01 evidence below remains preserved.
 This is an incremental implementation, not completion of spec.md. No deployment,
@@ -21,10 +22,10 @@ the final SHA separately to avoid a self-referential commit hash.
 | --- | --- | --- |
 | 00 audit | PASS | Exact source object verification, v2 backend/browser baseline and spec/contracts audit in v3-baseline.md |
 | 01 browser recording/framing acceptance | PASS, simulated devices | Independent native encoding, review/export/delete, pause/resume, microphone and import consent, byte/time limits, lifecycle cleanup, typed spatial association and smoothed selection; actual authenticated import to Library/Search/playback |
-| 02 provider/config extension | PASS, synthetic contracts | Separate strict v2 migration, preserved v1 history/CAS/export/rollback/encrypted restore, HF defaults/studio switching and correlated routing. Native NVIDIA remains unqualified; reserved research/target dispatch stays disabled |
-| 03 Qwen conversation/tools | FOUNDATION ONLY | Bounded OpenAI SSE and typed authenticated/idempotent tool boundary tested. Full chat API/UI, durable turns, grounded handlers, lifecycle and live probes remain |
+| 02 provider/config extension | PASS, synthetic contracts | Separate strict v2 migration, preserved v1 history/CAS/export/rollback/encrypted restore, HF defaults/studio switching and correlated routing. Native NVIDIA remains unqualified; target selection stays reserved and examples remain disabled |
+| 03 conversation | PASS, fixtures/local integration | Durable owned API/SSE/UI, complete correlated tool continuations, grounded index/scene tools, bounded idempotency and cancellation; live model unqualified |
 | 04 optional Phonon | NOT IMPLEMENTED | No mandatory dependency/weights added; pinned engine/license, English fixture and actual 2-vCPU measurements still required |
-| 05 A2A | NOT IMPLEMENTED | Official SDK client, durable jobs, reconciliation, cancellation and citations remain required |
+| 05 A2A research | PASS, official SDK fixtures/local integration | Durable async submit/poll/cancel, restart reconciliation and structured evidence; live agent key/network qualification pending |
 | 06 release | PARTIAL / BLOCKED | Production Next build/lint/backend/browser pass; CPU Docker build blocked at registry proxy policy. Physical devices and live/private deployment gates unrun |
 
 The broader v3 UX still needs PiP/composite outputs and clickable object selection;
@@ -154,3 +155,54 @@ still need explicit approval. A draft PR does not authorize those actions.
 - `54d2c70bb974f0fb743c923193e886d20885f4ef`: browser recorder/framing/lifecycle and integration tests.
 - The enclosing documentation commit adds qualification logs, disabled profile,
   architecture and changelog. Final delivered HEAD is recorded in the draft PR.
+
+
+## Gate 03 / 05 completion evidence
+
+The new reports supersede the earlier “foundation/pending” next-step descriptions
+above. Gates 03 and 05 run end to end with actual authenticated local API, SQLite,
+FFmpeg/index/clip playback, browser streaming, official A2A SDK and synthetic remote
+protocol fixtures. No live Qwen/A2A success is claimed. Final counts/logs are in
+`v3-evidence/gate03-complete/` and `v3-evidence/gate05/qualification.json`.
+The initial full browser regression log is preserved separately: it found an idle
+chat authentication alert affecting camera-only flows. The panel now waits for a
+configured session token before loading history; the camera suite was rerun.
+
+A new interpreter reconciles a persisted remote task without another submit. Real
+age encryption plus destructive local restore preserves conversation messages,
+research remote identities and the idempotency ledger through existing jobs.sqlite
+coverage. GitHub is mocked in this test; this is not a live repository recovery.
+The browser full loop keeps both simulated camera streams alive during research,
+uses an actually ingested/indexed clip, explicitly incorporates completed evidence,
+and reloads the durable history. Only intended Live snapshots change.
+
+The A2A cloud draft was saved with the selected host, URL template and missing
+secure token requirement. Saving did not apply/publish it. Add the token securely,
+review/save/publish the environment and include the host in VM_ALLOWED_HOSTS.
+Then run the read-only `scripts/qualify-a2a.py` probe. Full live remote research
+requires subsequent reviewed lifecycle qualification, not just card discovery.
+The actual task process currently has no A2A or OPENAI_COMPATIBLE credentials.
+
+A fresh base-only `uv sync --frozen --no-dev` installation and API/SDK import passed,
+without Torch/Transformers/vLLM. The runtime hashed lock was regenerated; the main
+lock preserves legacy optional package pins. A full optional-graph resolver attempt
+was denied at the PyTorch index, so SDK additions were resolved in a base-only
+project constrained to the old pins, merged with the untouched legacy blocks, and
+verified with `uv lock --check --offline` plus the real frozen installation.
+No optional GPU package or model was downloaded.
+
+CPU Docker remains BLOCKED by the historical registry policy denial. Private HF,
+physical devices, real provider inference/cost/resource qualification and production
+backup recovery remain outstanding. Production deployment and recurring workflow
+activation remain unauthorized. Optional Phonon stays separate/off.
+
+Final completion acceptance: **175 backend tests passed, zero skips; 43 browser
+tests passed; production Next build passed; lint zero errors and one existing
+Architecture warning.** The added speech review/citation playback integration also
+passed independently. Initial browser and test-type build failures are retained
+separately with the final successful logs.
+
+Implementation checkpoints:
+- Backend/SDK/tool lifecycle: `fae817c062c84f85fd82b1e835604d67020da2f4`.
+- Live conversation/speech/research UI: `bd0a6339b1280ef2ddaafc176d37de41f309aecd`.
+- The enclosing report commit is recorded by full SHA in Draft PR #3 and delivery.
